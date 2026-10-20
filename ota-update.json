@@ -1,0 +1,8 @@
+{
+  "latestVersionCode": 1,
+  "latestVersionName": "1.0.0",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.0.0/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• Rilascio Iniziale SUPSI MeDiTech Mobile\n• Agenda Clinica con rilevamento conflitti e buffer 10m\n• Hub Email con filtro VIP dinamico (Prof. Stéphane Meystre, EOC, Cardiocentro)\n• Assistente vocale AI e bozze cliniche multilingua\n• Aggiornamenti OTA diretti da Git",
+  "mandatory": false,
+  "publishedAt": "2026-10-20T14:30:00Z"
+}
