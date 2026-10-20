@@ -176,6 +176,7 @@ fun AgendaClinicaScreen(
                 items(uiState.events, key = { it.id }) { event ->
                     EventCard(
                         event = event,
+                        isDeleting = event.id in uiState.deletingEventIds,
                         onCancelClick = { viewModel.cancelAppointment(event.id) },
                         onMeetClick = {
                             if (event.hangoutLink.isNotBlank()) {
@@ -235,6 +236,7 @@ fun AgendaClinicaScreen(
 @Composable
 fun EventCard(
     event: CalendarEventItem,
+    isDeleting: Boolean = false,
     onCancelClick: () -> Unit,
     onMeetClick: () -> Unit
 ) {
@@ -242,7 +244,9 @@ fun EventCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MeditechSurface),
         border = BorderStroke(1.dp, MeditechBorder),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .cartoonCardExit(isDeleting)
     ) {
         Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             Box(
@@ -371,7 +375,8 @@ fun EventCard(
                     }
                 }
 
-                // Problem #8 SOLVED: Instant Cancel Button
+                // Problem #8 SOLVED: Instant Cancel Button con uscita cartoonesca
+                val cancelInteraction = remember { MutableInteractionSource() }
                 FilledTonalButton(
                     onClick = onCancelClick,
                     shape = RoundedCornerShape(10.dp),
@@ -380,7 +385,8 @@ fun EventCard(
                         contentColor = MeditechUrgentRed
                     ),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = if (event.isOnline) Modifier.wrapContentWidth() else Modifier.fillMaxWidth()
+                    modifier = (if (event.isOnline) Modifier.wrapContentWidth() else Modifier.fillMaxWidth())
+                        .emilPressScale(cancelInteraction, pressedScale = 0.90f)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))

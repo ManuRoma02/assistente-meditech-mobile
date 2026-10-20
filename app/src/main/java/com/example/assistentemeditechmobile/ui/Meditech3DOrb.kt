@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -94,6 +95,14 @@ fun Meditech3DNeuralOrb(
     Canvas(
         modifier = modifier
             .size(size)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        // Cartoony spin acceleration on tap
+                        userYaw += 3.14159f
+                    }
+                )
+            }
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
