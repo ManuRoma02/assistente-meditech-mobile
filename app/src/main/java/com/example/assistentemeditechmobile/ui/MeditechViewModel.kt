@@ -110,17 +110,17 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             refreshEvents()
 
             val confirmText = buildString {
-                append("✅ **Appuntamento fissato con successo!**\n\n")
-                append("📌 **Titolo:** ${created.title}\n")
-                append("🕒 **Orario:** ${created.startIso.takeLast(8).take(5)} - ${created.endIso.takeLast(8).take(5)} (${created.durationMinutes} min)\n")
-                append("📍 **Luogo:** ${created.location}\n")
-                append("👤 **Con:** ${created.contact}\n\n")
+                append("**Appuntamento registrato con successo**\n\n")
+                append("• **Titolo:** ${created.title}\n")
+                append("• **Orario:** ${created.startIso.takeLast(8).take(5)} - ${created.endIso.takeLast(8).take(5)} (${created.durationMinutes} min)\n")
+                append("• **Sede:** ${created.location}\n")
+                append("• **Partecipante:** ${created.contact}\n\n")
                 if (created.isOnline && created.hangoutLink.isNotBlank()) {
-                    append("📹 **Google Meet attivo:** [Partecipa alla videochiamata](${created.hangoutLink})\n\n")
+                    append("• **Collegamento Google Meet:** [Partecipa alla sessione](${created.hangoutLink})\n\n")
                 }
-                append("🔔 **3 Promemoria attivati:** 24h, 2h e 1h prima.")
+                append("• **Promemoria attivati:** 24h, 2h e 1h prima.")
                 if (conflicts.isNotEmpty()) {
-                    append("\n\n⚠️ **Nota di sovrapposizione:** hai già in calendario *${conflicts.first().title}*.")
+                    append("\n\n[AVVISO SOVRAPPOSIZIONE] In calendario è già presente: *${conflicts.first().title}*.")
                 }
             }
 
@@ -133,7 +133,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             _uiState.value = _uiState.value.copy(
                 isAiProcessing = false,
                 chatMessages = _uiState.value.chatMessages + assistantMsg,
-                statusBanner = "Appuntamento '${created.title}' registrato!"
+                statusBanner = "Appuntamento '${created.title}' registrato con successo"
             )
         }
     }
@@ -143,7 +143,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val ok = calendarRepository.cancelEvent(eventId)
             if (ok) {
                 refreshEvents()
-                _uiState.value = _uiState.value.copy(statusBanner = "🗑️ Appuntamento annullato con successo!")
+                _uiState.value = _uiState.value.copy(statusBanner = "Appuntamento annullato con successo")
             }
         }
     }
@@ -157,7 +157,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             _uiState.value = _uiState.value.copy(
                 isAiProcessing = false,
                 emails = updated,
-                statusBanner = "✍️ Bozza generata per ${emailItem.sender.substringBefore('<')}"
+                statusBanner = "Bozza clinica predisposta per ${emailItem.sender.substringBefore('<').trim()}"
             )
         }
     }
@@ -168,7 +168,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val updated = emailRepository.getEmails()
             _uiState.value = _uiState.value.copy(
                 emails = updated,
-                statusBanner = "🚀 Risposta inviata con successo via email!"
+                statusBanner = "Risposta inviata via email con successo"
             )
         }
     }
@@ -179,7 +179,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val vips = vipRepository.getVips()
             _uiState.value = _uiState.value.copy(
                 vips = vips,
-                statusBanner = "⭐ Contatto VIP '$name' aggiunto con priorità!"
+                statusBanner = "Contatto prioritario '$name' aggiunto all'elenco VIP"
             )
         }
     }
@@ -207,10 +207,10 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             viewModelScope.launch {
                 val evs = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
                 val reply = if (evs.isEmpty()) {
-                    "📅 Non hai appuntamenti in programma per questa data. Agenda libera!"
+                    "Nessun appuntamento in programma per questa data. Agenda libera."
                 } else {
-                    "📅 **Impegni per la giornata:**\n\n" + evs.joinToString("\n\n") {
-                        "• **${it.startIso.takeLast(8).take(5)} - ${it.endIso.takeLast(8).take(5)}**: ${it.title} (${it.durationMinutes} min)\n  📍 ${it.location}"
+                    "**Impegni registrati per la giornata:**\n\n" + evs.joinToString("\n\n") {
+                        "• **${it.startIso.takeLast(8).take(5)} - ${it.endIso.takeLast(8).take(5)}**: ${it.title} (${it.durationMinutes} min)\n  Sede: ${it.location}"
                     }
                 }
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
@@ -259,7 +259,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 onCompleted(apkFile)
             }.onFailure { err ->
                 _uiState.value = _uiState.value.copy(
-                    statusBanner = "❌ Errore download aggiornamento: ${err.localizedMessage}"
+                    statusBanner = "Errore download aggiornamento: ${err.localizedMessage}"
                 )
             }
         }

@@ -263,12 +263,22 @@ fun ChatBubble(message: ChatMessage) {
             border = if (!isUser) BorderStroke(1.dp, MeditechBorder) else null,
             modifier = Modifier.widthIn(max = 290.dp)
         ) {
-            Text(
-                text = message.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isUser) Color.White else MeditechTextPrimary,
-                modifier = Modifier.padding(12.dp)
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                if (!isUser) {
+                    Text(
+                        text = "MeDiTech AI • SUPSI",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MeditechCyanDark
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                Text(
+                    text = message.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isUser) Color.White else MeditechTextPrimary
+                )
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistentemeditechmobile.domain.CalendarEventItem
@@ -104,9 +105,7 @@ fun AgendaClinicaScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Events List or Empty State
+        Spacer(modifier = Modifier.height(16.dp))        // Events List or Empty State
         if (uiState.events.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -114,24 +113,56 @@ fun AgendaClinicaScreen(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = MeditechCyanPrimary.copy(alpha = 0.4f),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Nessun appuntamento in programma",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MeditechTextSecondary
-                    )
-                    Text(
-                        text = "Tocca il microfono o il tasto + per fissare un incontro",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MeditechTextTertiary
-                    )
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MeditechSurface,
+                    border = BorderStroke(1.dp, MeditechBorder),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(28.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MeditechCyanSoft,
+                            modifier = Modifier.size(60.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.EventAvailable,
+                                    contentDescription = null,
+                                    tint = MeditechCyanPrimary,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Nessun Impegno Registrato",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MeditechTextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "La tua agenda MeDiTech è libera per questa giornata.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MeditechTextTertiary,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { showAddDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Aggiungi Appuntamento", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                 }
             }
         } else {
@@ -210,7 +241,14 @@ fun EventCard(
         border = BorderStroke(1.dp, MeditechBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(4.dp)
+                    .background(MeditechCyanPrimary)
+            )
+            Column(modifier = Modifier.padding(16.dp).weight(1f)) {
             // Header Row: Time + Duration badge + Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -309,7 +347,7 @@ fun EventCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Actions Row: Google Meet + Instant Undo [❌ Annulla]
+            // Actions Row: Google Meet + Instant Undo
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -348,6 +386,7 @@ fun EventCard(
             }
         }
     }
+}
 }
 
 @Composable
