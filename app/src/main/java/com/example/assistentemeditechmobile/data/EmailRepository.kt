@@ -24,6 +24,7 @@ class EmailRepository(
     }
 
     private val mutex = Mutex()
+    private var cachedEmails: List<EmailItem>? = null
     private val emailsFile: File
         get() = File(context.filesDir, "meditech_emails.json")
 
@@ -108,6 +109,7 @@ class EmailRepository(
             val idx = current.indexOfFirst { it.id == emailId }
             if (idx >= 0) {
                 current[idx] = current[idx].copy(isRead = true)
+                cachedEmails = current
                 emailsFile.writeText(json.encodeToString(current))
             }
         }
@@ -119,6 +121,7 @@ class EmailRepository(
             val idx = current.indexOfFirst { it.id == emailId }
             if (idx >= 0) {
                 current[idx] = current[idx].copy(draftReply = newDraft)
+                cachedEmails = current
                 emailsFile.writeText(json.encodeToString(current))
             }
         }
@@ -135,9 +138,15 @@ class EmailRepository(
     }
 
     private fun getEmailsInternal(): List<EmailItem> {
-        if (!emailsFile.exists()) return defaultEmails
-        return runCatching {
+        cachedEmails?.let { return it }
+        if (!emailsFile.exists()) {
+            cachedEmails = defaultEmails
+            return defaultEmails
+        }
+        val loaded = runCatching {
             json.decodeFromString<List<EmailItem>>(emailsFile.readText())
         }.getOrDefault(defaultEmails)
+        cachedEmails = loaded
+        return loaded
     }
 }

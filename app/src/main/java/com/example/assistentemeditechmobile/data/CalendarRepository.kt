@@ -34,6 +34,7 @@ class CalendarRepository(private val context: Context) {
     }
 
     private val mutex = Mutex()
+    private var cachedEvents: List<CalendarEventItem>? = null
     private val eventsFile: File
         get() = File(context.filesDir, "meditech_calendar_events.json")
 
@@ -135,6 +136,7 @@ class CalendarRepository(private val context: Context) {
             val current = getEventsInternal().toMutableList()
             current.removeAll { it.id == eventItem.id }
             current.add(0, eventItem)
+            cachedEvents = current
             eventsFile.writeText(json.encodeToString(current))
         }
 
@@ -156,6 +158,7 @@ class CalendarRepository(private val context: Context) {
             val idx = current.indexOfFirst { it.id == eventId }
             if (idx >= 0) {
                 current[idx] = current[idx].copy(status = "CANCELLED")
+                cachedEvents = current
                 eventsFile.writeText(json.encodeToString(current))
                 true
             } else false
@@ -291,9 +294,15 @@ class CalendarRepository(private val context: Context) {
     }
 
     private fun getEventsInternal(): List<CalendarEventItem> {
-        if (!eventsFile.exists()) return emptyList()
-        return runCatching {
+        cachedEvents?.let { return it }
+        if (!eventsFile.exists()) {
+            cachedEvents = emptyList()
+            return emptyList()
+        }
+        val loaded = runCatching {
             json.decodeFromString<List<CalendarEventItem>>(eventsFile.readText())
         }.getOrDefault(emptyList())
+        cachedEvents = loaded
+        return loaded
     }
 }
