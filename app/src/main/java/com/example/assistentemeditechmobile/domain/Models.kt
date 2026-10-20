@@ -8,11 +8,10 @@ import kotlinx.serialization.Serializable
 // Clinical & Research Work Automation
 // =========================================================================
 
-enum class MeditechTab(val title: String) {
-    AGENDA("Agenda Clinica"),
-    EMAIL_HUB("Email & Inbox"),
-    PROGETTI("Progetti & Studi"),
-    CHAT_AI("Assistente MeDiTech")
+enum class MeditechTab(val pageIndex: Int, val title: String) {
+    EMAIL_HUB(0, "Email"),
+    CHAT_AI(1, "Assistente AI"),
+    AGENDA(2, "Impegni")
 }
 
 @Immutable

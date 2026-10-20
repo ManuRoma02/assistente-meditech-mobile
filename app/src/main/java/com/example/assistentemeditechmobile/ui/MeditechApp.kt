@@ -1,12 +1,17 @@
 package com.example.assistentemeditechmobile.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,21 +22,51 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.assistentemeditechmobile.R
 import com.example.assistentemeditechmobile.domain.MeditechTab
 import com.example.assistentemeditechmobile.theme.*
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
+    // 3 Pages: 0 = Email, 1 = AI Chat (default center!), 2 = Agenda Impegni
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
+
+    // Sincronizzazione swipe orizzontale Pager -> ViewModel Tab
+    LaunchedEffect(pagerState.currentPage) {
+        val tab = when (pagerState.currentPage) {
+            0 -> MeditechTab.EMAIL_HUB
+            2 -> MeditechTab.AGENDA
+            else -> MeditechTab.CHAT_AI
+        }
+        if (uiState.currentTab != tab) {
+            viewModel.selectTab(tab)
+        }
+    }
+
+    // Sincronizzazione ViewModel Tab -> Pager (1-Tap & Programmatic Navigation)
+    LaunchedEffect(uiState.currentTab) {
+        val targetPage = when (uiState.currentTab) {
+            MeditechTab.EMAIL_HUB -> 0
+            MeditechTab.AGENDA -> 2
+            else -> 1
+        }
+        if (pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    // OTA Update Dialog
     if (uiState.isUpdateAvailable || uiState.isDownloadingUpdate) {
         val manifest = uiState.updateManifest
         AlertDialog(
@@ -55,13 +90,13 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
             text = {
                 Column {
                     Text(
-                        text = "Nuova versione disponibile: v${manifest?.latestVersionName ?: "1.0.1"} (Build #${manifest?.latestVersionCode ?: 2})",
+                        text = "Nuova versione disponibile: v${manifest?.latestVersionName ?: "1.2.0"} (Build #${manifest?.latestVersionCode ?: 3})",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MeditechCyanDark
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = manifest?.releaseNotes?.ifBlank { "Miglioramenti all'agenda clinica, sincronizzazione email e comandi vocali." } ?: "",
+                        text = manifest?.releaseNotes?.ifBlank { "Miglioramenti all'agenda clinica, sincronizzazione email, gesture a scorrimento orizzontale e motore IA." } ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MeditechTextSecondary
                     )
@@ -111,40 +146,81 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
         )
     }
 
+    // Settings BottomSheet
+    if (uiState.showSettingsDialog) {
+        MeditechSettingsSheet(
+            uiState = uiState,
+            viewModel = viewModel,
+            onDismiss = { viewModel.setSettingsDialogVisible(false) }
+        )
+    }
+
     Scaffold(
         topBar = {
-            MeditechTopBar(
+            MeditechHeader(
+                currentPage = pagerState.currentPage,
+                onTabClick = { page ->
+                    val tab = when (page) {
+                        0 -> MeditechTab.EMAIL_HUB
+                        2 -> MeditechTab.AGENDA
+                        else -> MeditechTab.CHAT_AI
+                    }
+                    viewModel.selectTab(tab)
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(page)
+                    }
+                },
+                isAiProcessing = uiState.isAiProcessing,
+                selectedModel = uiState.selectedAiModel,
                 statusBanner = uiState.statusBanner,
-                onDismissBanner = { viewModel.dismissBanner() }
-            )
-        },
-        bottomBar = {
-            MeditechBottomNav(
-                currentTab = uiState.currentTab,
-                onTabSelected = { viewModel.selectTab(it) }
+                onDismissBanner = { viewModel.dismissBanner() },
+                onOpenSettings = { viewModel.setSettingsDialogVisible(true) }
             )
         },
         containerColor = MeditechBg
     ) { innerPadding ->
-        Box(
+        // Swipeable HorizontalPager
+        HorizontalPager(
+            state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-        ) {
-            when (uiState.currentTab) {
-                MeditechTab.AGENDA -> AgendaClinicaScreen(viewModel = viewModel)
-                MeditechTab.EMAIL_HUB -> EmailHubScreen(viewModel = viewModel)
-                MeditechTab.PROGETTI -> ProgettiRicercaScreen(viewModel = viewModel)
-                MeditechTab.CHAT_AI -> MeditechAiChatScreen(viewModel = viewModel)
+        ) { page ->
+            // Cartoony parallax transform during swipe
+            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val scale = 1f - (abs(pageOffset) * 0.04f).coerceIn(0f, 0.08f)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = 1f - (abs(pageOffset) * 0.25f).coerceIn(0f, 0.4f)
+                    }
+            ) {
+                when (page) {
+                    0 -> EmailHubScreen(viewModel = viewModel)
+                    1 -> MeditechAiChatScreen(viewModel = viewModel)
+                    2 -> AgendaClinicaScreen(viewModel = viewModel)
+                }
             }
         }
     }
 }
 
+/**
+ * Header unificato con 3D Neural Orb, branding SUPSI, badge modello,
+ * tasto Impostazioni e barra di selezione a 3 pillole animate con spring physics.
+ */
 @Composable
-fun MeditechTopBar(
+fun MeditechHeader(
+    currentPage: Int,
+    onTabClick: (Int) -> Unit,
+    isAiProcessing: Boolean,
+    selectedModel: String,
     statusBanner: String?,
-    onDismissBanner: () -> Unit
+    onDismissBanner: () -> Unit,
+    onOpenSettings: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -152,28 +228,20 @@ fun MeditechTopBar(
             .background(MeditechSurface)
             .statusBarsPadding()
     ) {
+        // Riga 1: 3D Orb + MeDiTech Title + Model Badge + Settings Gear
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Clinical Avatar / Logo
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MeditechCyanSoft),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.meditech_avatar),
-                        contentDescription = "MeDiTech SUPSI Avatar",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                // Interactive 3D Neural Thinking Orb
+                Meditech3DNeuralOrb(
+                    isProcessing = isAiProcessing,
+                    size = 40.dp
+                )
 
                 Spacer(modifier = Modifier.width(10.dp))
 
@@ -208,28 +276,98 @@ fun MeditechTopBar(
                 }
             }
 
-            // Status Indicator (Live ECG Teal dot)
-            Surface(
-                shape = CircleShape,
-                color = MeditechTealSoft
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Right Actions: Live Model Capsule + Settings Gear Icon
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    onClick = onOpenSettings,
+                    shape = RoundedCornerShape(12.dp),
+                    color = MeditechTealSoft
                 ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(MeditechTealActive, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = selectedModel.substringBefore(" ").take(10),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MeditechTealActive,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                val settingsInteraction = remember { MutableInteractionSource() }
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(MeditechGroupedBg, CircleShape)
+                        .emilPressScale(settingsInteraction)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = "Impostazioni Motore IA",
+                        tint = MeditechCyanPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+
+        // Riga 2: 3 Segmented Pill Selector (Email | Assistente AI | Impegni)
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MeditechGroupedBg,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf(
+                    0 to "Email",
+                    1 to "Assistente AI",
+                    2 to "Impegni"
+                ).forEach { (pageIndex, label) ->
+                    val isSelected = currentPage == pageIndex
+                    val interaction = remember { MutableInteractionSource() }
+
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
-                            .background(MeditechTealActive, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = "ON-DEVICE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MeditechTealActive,
-                        fontSize = 10.sp
-                    )
+                            .weight(1f)
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(if (isSelected) MeditechCyanPrimary else Color.Transparent)
+                            .clickable(
+                                interactionSource = interaction,
+                                indication = null
+                            ) {
+                                onTabClick(pageIndex)
+                            }
+                            .emilPressScale(interaction, pressedScale = 0.92f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color.White else MeditechTextSecondary
+                        )
+                    }
                 }
             }
         }
@@ -248,7 +386,7 @@ fun MeditechTopBar(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .padding(horizontal = 16.dp, vertical = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -260,9 +398,14 @@ fun MeditechTopBar(
                         )
                         IconButton(
                             onClick = onDismissBanner,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Chiudi", tint = MeditechCyanDark, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Chiudi",
+                                tint = MeditechCyanDark,
+                                modifier = Modifier.size(15.dp)
+                            )
                         }
                     }
                 }
@@ -270,77 +413,5 @@ fun MeditechTopBar(
         }
 
         HorizontalDivider(color = MeditechBorder, thickness = 1.dp)
-    }
-}
-
-@Composable
-fun MeditechBottomNav(
-    currentTab: MeditechTab,
-    onTabSelected: (MeditechTab) -> Unit
-) {
-    Surface(
-        color = MeditechSurface,
-        border = BorderStroke(1.dp, MeditechBorder)
-    ) {
-        NavigationBar(
-            containerColor = Color.Transparent,
-            tonalElevation = 0.dp
-        ) {
-            NavigationBarItem(
-                selected = currentTab == MeditechTab.AGENDA,
-                onClick = { onTabSelected(MeditechTab.AGENDA) },
-                icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Agenda") },
-                label = { Text("Agenda", style = MaterialTheme.typography.labelSmall) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MeditechCyanPrimary,
-                    selectedTextColor = MeditechCyanPrimary,
-                    unselectedIconColor = MeditechTextTertiary,
-                    unselectedTextColor = MeditechTextTertiary,
-                    indicatorColor = MeditechCyanSoft
-                )
-            )
-
-            NavigationBarItem(
-                selected = currentTab == MeditechTab.EMAIL_HUB,
-                onClick = { onTabSelected(MeditechTab.EMAIL_HUB) },
-                icon = { Icon(Icons.Default.Email, contentDescription = "Email Hub") },
-                label = { Text("Email", style = MaterialTheme.typography.labelSmall) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MeditechCyanPrimary,
-                    selectedTextColor = MeditechCyanPrimary,
-                    unselectedIconColor = MeditechTextTertiary,
-                    unselectedTextColor = MeditechTextTertiary,
-                    indicatorColor = MeditechCyanSoft
-                )
-            )
-
-            NavigationBarItem(
-                selected = currentTab == MeditechTab.PROGETTI,
-                onClick = { onTabSelected(MeditechTab.PROGETTI) },
-                icon = { Icon(Icons.Default.MedicalServices, contentDescription = "Progetti") },
-                label = { Text("Progetti", style = MaterialTheme.typography.labelSmall) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MeditechCyanPrimary,
-                    selectedTextColor = MeditechCyanPrimary,
-                    unselectedIconColor = MeditechTextTertiary,
-                    unselectedTextColor = MeditechTextTertiary,
-                    indicatorColor = MeditechCyanSoft
-                )
-            )
-
-            NavigationBarItem(
-                selected = currentTab == MeditechTab.CHAT_AI,
-                onClick = { onTabSelected(MeditechTab.CHAT_AI) },
-                icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "MeDiTech AI") },
-                label = { Text("AI Chat", style = MaterialTheme.typography.labelSmall) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MeditechCyanPrimary,
-                    selectedTextColor = MeditechCyanPrimary,
-                    unselectedIconColor = MeditechTextTertiary,
-                    unselectedTextColor = MeditechTextTertiary,
-                    indicatorColor = MeditechCyanSoft
-                )
-            )
-        }
     }
 }
