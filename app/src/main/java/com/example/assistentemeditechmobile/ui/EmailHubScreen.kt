@@ -1,6 +1,11 @@
 package com.example.assistentemeditechmobile.ui
 
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -236,6 +241,9 @@ fun EmailCard(
     onCopyDraft: (String) -> Unit,
     onScheduleMeeting: () -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    var isSending by remember { mutableStateOf(false) }
+    var isCopied by remember { mutableStateOf(false) }
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MeditechSurface),
@@ -414,29 +422,88 @@ fun EmailCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Direct Send (No copy-paste needed!)
+                            // Direct Send con volo dell'aeroplanino di carta (/emilkowalski-animation)
+                            val sendBtnInteraction = remember { MutableInteractionSource() }
                             Button(
-                                onClick = { onSendReply(email.draftReply) },
+                                onClick = {
+                                    if (!isSending) {
+                                        isSending = true
+                                        coroutineScope.launch {
+                                            delay(380)
+                                            onSendReply(email.draftReply)
+                                            isSending = false
+                                        }
+                                    }
+                                },
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isSending) MeditechTealActive else MeditechCyanPrimary
+                                ),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .emilPressScale(sendBtnInteraction, pressedScale = 0.90f)
                             ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    imageVector = if (isSending) Icons.Default.Check else Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .cartoonPaperPlane(isSending)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Invia Subito", style = MaterialTheme.typography.labelSmall)
+                                Text(
+                                    text = if (isSending) "Inviata!" else "Invia Subito",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
 
-                            // Copy Button
+                            // Copy Button con rimbalzo elastico
+                            val copyBtnInteraction = remember { MutableInteractionSource() }
+                            val copyScale by animateFloatAsState(
+                                targetValue = if (isCopied) 1.25f else 1f,
+                                animationSpec = CartoonyHighBouncySpring,
+                                label = "draftCopyScale"
+                            )
+                            val copyBgColor by animateColorAsState(
+                                targetValue = if (isCopied) MeditechTealSoft else Color.Transparent,
+                                label = "draftCopyBg"
+                            )
+
                             OutlinedButton(
-                                onClick = { onCopyDraft(email.draftReply) },
+                                onClick = {
+                                    onCopyDraft(email.draftReply)
+                                    isCopied = true
+                                    coroutineScope.launch {
+                                        delay(1600)
+                                        isCopied = false
+                                    }
+                                },
                                 shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, MeditechBorder),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                border = BorderStroke(1.dp, if (isCopied) MeditechTealActive else MeditechBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(containerColor = copyBgColor),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.emilPressScale(copyBtnInteraction, pressedScale = 0.90f)
                             ) {
-                                Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Icon(
+                                    imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                    tint = if (isCopied) MeditechTealActive else MeditechTextSecondary,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .graphicsLayer {
+                                            scaleX = copyScale
+                                            scaleY = copyScale
+                                        }
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Copia", style = MaterialTheme.typography.labelSmall)
+                                Text(
+                                    text = if (isCopied) "Copiata!" else "Copia",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isCopied) MeditechTealActive else MeditechTextSecondary,
+                                    fontWeight = if (isCopied) FontWeight.Bold else FontWeight.Medium
+                                )
                             }
                         }
                     }

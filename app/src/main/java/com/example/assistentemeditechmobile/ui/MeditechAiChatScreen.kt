@@ -17,7 +17,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -72,13 +74,66 @@ fun MeditechAiChatScreen(
         }
     }
 
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = null,
+                        tint = MeditechUrgentRed,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Ripulisci Cronologia",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MeditechTextPrimary
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "Vuoi dissolvere e ripulire tutti i messaggi della sessione corrente? I dati dell'agenda e le email non verranno toccati.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MeditechTextSecondary
+                )
+            },
+            confirmButton = {
+                val delInteraction = remember { MutableInteractionSource() }
+                Button(
+                    onClick = {
+                        showClearConfirmDialog = false
+                        viewModel.clearChatHistory()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MeditechUrgentRed),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.emilPressScale(delInteraction, pressedScale = 0.90f)
+                ) {
+                    Text("Dissolvi e Pulisci", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text("Annulla", color = MeditechTextSecondary)
+                }
+            },
+            containerColor = MeditechSurface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MeditechBg)
             .padding(horizontal = 16.dp)
     ) {
-        // Chat Messages Feed with SelectionContainer & Animated Entrance
+        // Chat Messages Feed with SelectionContainer & Animated Entrance / Cartoon Poof
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -87,18 +142,19 @@ fun MeditechAiChatScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(vertical = 14.dp)
         ) {
-            items(uiState.chatMessages, key = { it.id }) { message ->
+            itemsIndexed(uiState.chatMessages, key = { _, message -> message.id }) { index, message ->
                 AnimatedVisibility(
                     visible = true,
                     enter = scaleIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
+                        animationSpec = CartoonyHighBouncySpring,
                         initialScale = 0.88f
-                    ) + fadeIn(tween(200))
+                    ) + fadeIn(tween(220))
                 ) {
-                    ChatBubble(message = message)
+                    ChatBubble(
+                        message = message,
+                        index = index,
+                        isDissolving = uiState.isClearingChat
+                    )
                 }
             }
 
@@ -124,14 +180,45 @@ fun MeditechAiChatScreen(
             }
         }
 
-        // Quick Suggestion Pills with Emil Kowalski spring feedback
+        // Quick Suggestion Pills & Clear Chat Trigger with Emil Kowalski spring feedback
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
                 .padding(vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            if (uiState.chatMessages.size > 1) {
+                val clearInteraction = remember { MutableInteractionSource() }
+                Surface(
+                    onClick = { showClearConfirmDialog = true },
+                    shape = RoundedCornerShape(14.dp),
+                    color = MeditechSurface,
+                    border = BorderStroke(1.dp, MeditechUrgentRed.copy(alpha = 0.4f)),
+                    modifier = Modifier.emilPressScale(clearInteraction, pressedScale = 0.90f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Pulisci chat",
+                            tint = MeditechUrgentRed,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Pulisci",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MeditechUrgentRed,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
             listOf(
                 "Fissa meeting 30m con Stéphane Meystre",
                 "Cosa ho in agenda oggi?",
@@ -194,7 +281,8 @@ fun MeditechAiChatScreen(
                     modifier = Modifier
                         .size(42.dp)
                         .background(MeditechCyanSoft, CircleShape)
-                        .emilPressScale(micInteraction)
+                        .cartoonAcousticPulse(uiState.isVoiceListening)
+                        .emilPressScale(micInteraction, pressedScale = 0.88f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Mic,
@@ -264,7 +352,11 @@ fun MeditechAiChatScreen(
  * - Tasti rapidi Copia (con check icon feedback) e Condividi (chooser Android nativo)
  */
 @Composable
-fun ChatBubble(message: ChatMessage) {
+fun ChatBubble(
+    message: ChatMessage,
+    index: Int = 0,
+    isDissolving: Boolean = false
+) {
     val isUser = message.role == "user"
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -274,7 +366,9 @@ fun ChatBubble(message: ChatMessage) {
     var isCopied by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .cartoonPoofDissolve(isDissolving = isDissolving, index = index),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Row(
@@ -361,11 +455,22 @@ fun ChatBubble(message: ChatMessage) {
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Tasto Copia
+            // 1. Tasto Copia con feedback a rimbalzo cartoonesco
             val copyInteraction = remember { MutableInteractionSource() }
+            val copyScale by animateFloatAsState(
+                targetValue = if (isCopied) 1.25f else 1f,
+                animationSpec = CartoonyHighBouncySpring,
+                label = "copyScale"
+            )
+            val copyBgColor by animateColorAsState(
+                targetValue = if (isCopied) MeditechTealSoft else MeditechGroupedBg,
+                animationSpec = spring(),
+                label = "copyBgColor"
+            )
+
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = MeditechGroupedBg,
+                color = copyBgColor,
                 modifier = Modifier
                     .clickable {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -377,7 +482,7 @@ fun ChatBubble(message: ChatMessage) {
                             isCopied = false
                         }
                     }
-                    .emilPressScale(copyInteraction, pressedScale = 0.90f)
+                    .emilPressScale(copyInteraction, pressedScale = 0.88f)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -388,13 +493,18 @@ fun ChatBubble(message: ChatMessage) {
                         imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
                         contentDescription = "Copia",
                         tint = if (isCopied) MeditechTealActive else MeditechTextTertiary,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier
+                            .size(12.dp)
+                            .graphicsLayer {
+                                scaleX = copyScale
+                                scaleY = copyScale
+                            }
                     )
                     Text(
-                        text = if (isCopied) "Copiato" else "Copia",
+                        text = if (isCopied) "Copiato!" else "Copia",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         color = if (isCopied) MeditechTealActive else MeditechTextSecondary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = if (isCopied) FontWeight.Bold else FontWeight.Medium
                     )
                 }
             }

@@ -174,7 +174,8 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                 selectedModel = uiState.selectedAiModel,
                 statusBanner = uiState.statusBanner,
                 onDismissBanner = { viewModel.dismissBanner() },
-                onOpenSettings = { viewModel.setSettingsDialogVisible(true) }
+                onOpenSettings = { viewModel.setSettingsDialogVisible(true) },
+                onClearChat = { viewModel.clearChatHistory() }
             )
         },
         containerColor = MeditechBg
@@ -220,7 +221,8 @@ fun MeditechHeader(
     selectedModel: String,
     statusBanner: String?,
     onDismissBanner: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onClearChat: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -304,6 +306,25 @@ fun MeditechHeader(
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
+
+                if (currentPage == 1 && onClearChat != null) {
+                    val clearInteraction = remember { MutableInteractionSource() }
+                    IconButton(
+                        onClick = onClearChat,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(MeditechGroupedBg, CircleShape)
+                            .emilPressScale(clearInteraction, pressedScale = 0.88f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Pulisci Cronologia",
+                            tint = MeditechUrgentRed,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
 
                 val settingsInteraction = remember { MutableInteractionSource() }
                 IconButton(

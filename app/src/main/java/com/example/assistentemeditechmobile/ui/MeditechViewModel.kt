@@ -42,7 +42,10 @@ data class MeditechUiState(
     val responseStyle: String = "Clinico Bilanciato",
     val autoCreateMeet: Boolean = true,
     val safetyBufferEnabled: Boolean = true,
-    val showSettingsDialog: Boolean = false
+    val showSettingsDialog: Boolean = false,
+    val isClearingChat: Boolean = false,
+    val deletingEventIds: Set<String> = emptySet(),
+    val sentEmailIds: Set<String> = emptySet()
 )
 
 class MeditechViewModel(application: Application) : AndroidViewModel(application) {
@@ -143,12 +146,41 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun clearChatHistory(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isClearingChat = true)
+            kotlinx.coroutines.delay(450L)
+            val welcomeMsg = ChatMessage(
+                id = UUID.randomUUID().toString().take(8),
+                role = "assistant",
+                text = "✨ **Cronologia ripulita con successo.**\n\nPronto per nuove richieste cliniche, pianificazione meeting e consultazione agenda."
+            )
+            _uiState.value = _uiState.value.copy(
+                chatMessages = listOf(welcomeMsg),
+                isClearingChat = false,
+                statusBanner = "Cronologia chat ripulita"
+            )
+            onComplete()
+        }
+    }
+
     fun cancelAppointment(eventId: String) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                deletingEventIds = _uiState.value.deletingEventIds + eventId
+            )
+            kotlinx.coroutines.delay(350L)
             val ok = calendarRepository.cancelEvent(eventId)
             if (ok) {
                 refreshEvents()
-                _uiState.value = _uiState.value.copy(statusBanner = "Appuntamento annullato con successo")
+                _uiState.value = _uiState.value.copy(
+                    deletingEventIds = _uiState.value.deletingEventIds - eventId,
+                    statusBanner = "Appuntamento annullato con successo"
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    deletingEventIds = _uiState.value.deletingEventIds - eventId
+                )
             }
         }
     }
@@ -169,6 +201,10 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
     fun sendEmailReply(emailItem: EmailItem, replyText: String) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                sentEmailIds = _uiState.value.sentEmailIds + emailItem.id
+            )
+            kotlinx.coroutines.delay(450L)
             emailRepository.sendEmailReply(emailItem, replyText)
             val updated = emailRepository.getEmails()
             _uiState.value = _uiState.value.copy(
