@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -90,11 +91,13 @@ fun AgendaClinicaScreen(
                     )
                 }
 
+                val addInteraction = remember { MutableInteractionSource() }
                 IconButton(
                     onClick = { showAddDialog = true },
                     modifier = Modifier
                         .size(44.dp)
                         .background(MeditechCyanPrimary, CircleShape)
+                        .emilPressScale(addInteraction, pressedScale = 0.90f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -410,12 +413,15 @@ fun DateSelectorRow(
             }
             val dayNumber = date.dayOfMonth.toString()
 
+            val dateInteraction = remember { MutableInteractionSource() }
             Surface(
                 onClick = { onDateSelected(date) },
                 shape = RoundedCornerShape(12.dp),
                 color = if (isSelected) MeditechCyanPrimary else MeditechSurface,
                 border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else MeditechBorder),
-                modifier = Modifier.width(64.dp)
+                modifier = Modifier
+                    .width(64.dp)
+                    .emilPressScale(dateInteraction, pressedScale = 0.92f)
             ) {
                 Column(
                     modifier = Modifier.padding(vertical = 8.dp),

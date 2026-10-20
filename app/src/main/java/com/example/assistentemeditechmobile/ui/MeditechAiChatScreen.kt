@@ -3,12 +3,18 @@ package com.example.assistentemeditechmobile.ui
 import android.app.Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +22,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -23,13 +30,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistentemeditechmobile.domain.ChatMessage
 import com.example.assistentemeditechmobile.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,7 +56,7 @@ fun MeditechAiChatScreen(
 
     var inputText by remember { mutableStateOf("") }
 
-    // Speech Recognizer Launcher for Voice Commands (Problem #4 SOLVED!)
+    // Speech Recognizer Launcher for Voice Commands
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -65,47 +78,58 @@ fun MeditechAiChatScreen(
             .background(MeditechBg)
             .padding(horizontal = 16.dp)
     ) {
-        // Chat Messages Feed
+        // Chat Messages Feed with SelectionContainer & Animated Entrance
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(vertical = 12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(vertical = 14.dp)
         ) {
             items(uiState.chatMessages, key = { it.id }) { message ->
-                ChatBubble(message = message)
+                AnimatedVisibility(
+                    visible = true,
+                    enter = scaleIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        initialScale = 0.88f
+                    ) + fadeIn(tween(200))
+                ) {
+                    ChatBubble(message = message)
+                }
             }
 
             if (uiState.isAiProcessing) {
                 item {
                     Row(
-                        modifier = Modifier.padding(start = 8.dp, top = 4.dp),
+                        modifier = Modifier.padding(start = 8.dp, top = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(18.dp),
                             color = MeditechCyanPrimary,
-                            strokeWidth = 2.dp
+                            strokeWidth = 2.5.dp
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "MeDiTech AI sta analizzando...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MeditechTextTertiary
+                            text = "${uiState.selectedAiModel} sta elaborando la richiesta...",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            color = MeditechCyanDark
                         )
                     }
                 }
             }
         }
 
-        // Quick Suggestion Pills
+        // Quick Suggestion Pills with Emil Kowalski spring feedback
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(vertical = 4.dp),
+                .padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf(
@@ -114,6 +138,7 @@ fun MeditechAiChatScreen(
                 "Pianifica call online domani alle 15",
                 "Riunione con EOC Ticino"
             ).forEach { prompt ->
+                val pillInteraction = remember { MutableInteractionSource() }
                 Surface(
                     onClick = {
                         viewModel.sendUserChatMessage(prompt)
@@ -121,16 +146,17 @@ fun MeditechAiChatScreen(
                             listState.animateScrollToItem(uiState.chatMessages.size)
                         }
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     color = MeditechSurface,
-                    border = BorderStroke(1.dp, MeditechBorderCyan)
+                    border = BorderStroke(1.dp, MeditechBorderCyan),
+                    modifier = Modifier.emilPressScale(pillInteraction, pressedScale = 0.93f)
                 ) {
                     Text(
                         text = prompt,
                         style = MaterialTheme.typography.labelSmall,
                         color = MeditechCyanDark,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                     )
                 }
             }
@@ -140,13 +166,13 @@ fun MeditechAiChatScreen(
 
         // Input Bar: Text Field + Voice Mic + Send Button
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(26.dp),
             color = MeditechSurface,
             border = BorderStroke(1.dp, MeditechBorder),
-            shadowElevation = 2.dp,
+            shadowElevation = 3.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp)
+                .padding(bottom = 14.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -154,7 +180,8 @@ fun MeditechAiChatScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Voice Dictation Button (Problem #4 solved!)
+                // Voice Dictation Button with Spring Animation
+                val micInteraction = remember { MutableInteractionSource() }
                 IconButton(
                     onClick = {
                         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -165,14 +192,15 @@ fun MeditechAiChatScreen(
                         speechLauncher.launch(intent)
                     },
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .background(MeditechCyanSoft, CircleShape)
+                        .emilPressScale(micInteraction)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Mic,
                         contentDescription = "Comando Vocale",
                         tint = MeditechCyanPrimary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
@@ -198,6 +226,7 @@ fun MeditechAiChatScreen(
                     modifier = Modifier.weight(1f)
                 )
 
+                val sendInteraction = remember { MutableInteractionSource() }
                 IconButton(
                     onClick = {
                         if (inputText.isNotBlank()) {
@@ -209,17 +238,18 @@ fun MeditechAiChatScreen(
                         }
                     },
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .background(
                             if (inputText.isNotBlank()) MeditechCyanPrimary else MeditechGroupedBg,
                             CircleShape
                         )
+                        .emilPressScale(sendInteraction)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Invia",
                         tint = if (inputText.isNotBlank()) Color.White else MeditechTextTertiary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(19.dp)
                     )
                 }
             }
@@ -227,57 +257,184 @@ fun MeditechAiChatScreen(
     }
 }
 
+/**
+ * Bubble conversazionale ad altissima leggibilità:
+ * - Wrap in SelectionContainer per selezione testo nativa
+ * - Dimensione carattere aumentata a 15.5sp con altezza riga confortevole (22sp)
+ * - Tasti rapidi Copia (con check icon feedback) e Condividi (chooser Android nativo)
+ */
 @Composable
 fun ChatBubble(message: ChatMessage) {
     val isUser = message.role == "user"
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
 
-    Row(
+    var isCopied by remember { mutableStateOf(false) }
+
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
-        if (!isUser) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(MeditechCyanPrimary, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+        ) {
+            if (!isUser) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .background(MeditechCyanPrimary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
             }
-            Spacer(modifier = Modifier.width(8.dp))
+
+            Surface(
+                shape = RoundedCornerShape(
+                    topStart = 18.dp,
+                    topEnd = 18.dp,
+                    bottomStart = if (isUser) 18.dp else 4.dp,
+                    bottomEnd = if (isUser) 4.dp else 18.dp
+                ),
+                color = if (isUser) MeditechCyanPrimary else MeditechSurface,
+                border = if (!isUser) BorderStroke(1.dp, MeditechBorder) else null,
+                shadowElevation = if (isUser) 2.dp else 1.dp,
+                modifier = Modifier.widthIn(max = 310.dp)
+            ) {
+                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                    if (!isUser) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(3.5.dp)
+                                .background(MeditechCyanPrimary)
+                        )
+                    }
+
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        if (!isUser) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "MeDiTech AI • SUPSI",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MeditechCyanDark
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
+
+                        // SelectionContainer per selezione testo nativa
+                        SelectionContainer {
+                            Text(
+                                text = message.text,
+                                style = TextStyle(
+                                    fontSize = 15.5.sp,
+                                    lineHeight = 22.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = if (isUser) Color.White else MeditechTextPrimary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        Surface(
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isUser) 16.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 16.dp
-            ),
-            color = if (isUser) MeditechCyanPrimary else MeditechSurface,
-            border = if (!isUser) BorderStroke(1.dp, MeditechBorder) else null,
-            modifier = Modifier.widthIn(max = 290.dp)
+        // Tasti Rapidi Azioni: Copia & Condividi
+        Row(
+            modifier = Modifier
+                .padding(top = 4.dp, start = if (isUser) 0.dp else 42.dp, end = if (isUser) 4.dp else 0.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                if (!isUser) {
-                    Text(
-                        text = "MeDiTech AI • SUPSI",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MeditechCyanDark
+            // 1. Tasto Copia
+            val copyInteraction = remember { MutableInteractionSource() }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MeditechGroupedBg,
+                modifier = Modifier
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        clipboardManager.setText(AnnotatedString(message.text))
+                        isCopied = true
+                        Toast.makeText(context, "Messaggio copiato negli appunti!", Toast.LENGTH_SHORT).show()
+                        coroutineScope.launch {
+                            delay(1800)
+                            isCopied = false
+                        }
+                    }
+                    .emilPressScale(copyInteraction, pressedScale = 0.90f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                        contentDescription = "Copia",
+                        tint = if (isCopied) MeditechTealActive else MeditechTextTertiary,
+                        modifier = Modifier.size(12.dp)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (isCopied) "Copiato" else "Copia",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = if (isCopied) MeditechTealActive else MeditechTextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-                Text(
-                    text = message.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) Color.White else MeditechTextPrimary
-                )
+            }
+
+            // 2. Tasto Condividi
+            val shareInteraction = remember { MutableInteractionSource() }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MeditechGroupedBg,
+                modifier = Modifier
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, message.text)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, "Condividi messaggio via:")
+                        context.startActivity(shareIntent)
+                    }
+                    .emilPressScale(shareInteraction, pressedScale = 0.90f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Condividi",
+                        tint = MeditechTextTertiary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = "Condividi",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                        color = MeditechTextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

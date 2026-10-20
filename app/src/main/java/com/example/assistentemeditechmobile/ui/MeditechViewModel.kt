@@ -23,7 +23,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class MeditechUiState(
-    val currentTab: MeditechTab = MeditechTab.AGENDA,
+    val currentTab: MeditechTab = MeditechTab.CHAT_AI,
     val selectedDate: LocalDate = LocalDate.now(),
     val events: List<CalendarEventItem> = emptyList(),
     val emails: List<EmailItem> = emptyList(),
@@ -37,7 +37,12 @@ data class MeditechUiState(
     val updateManifest: com.example.assistentemeditechmobile.data.ota.OtaUpdateManifest? = null,
     val isDownloadingUpdate: Boolean = false,
     val updateProgress: Float = 0f,
-    val readyToInstallApk: java.io.File? = null
+    val readyToInstallApk: java.io.File? = null,
+    val selectedAiModel: String = "Gemini 3.5 Flash",
+    val responseStyle: String = "Clinico Bilanciato",
+    val autoCreateMeet: Boolean = true,
+    val safetyBufferEnabled: Boolean = true,
+    val showSettingsDialog: Boolean = false
 )
 
 class MeditechViewModel(application: Application) : AndroidViewModel(application) {
@@ -267,5 +272,31 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
     fun dismissUpdateDialog() {
         _uiState.value = _uiState.value.copy(isUpdateAvailable = false)
+    }
+
+    fun setAiModel(model: String) {
+        _uiState.value = _uiState.value.copy(
+            selectedAiModel = model,
+            statusBanner = "Modello attivo: $model"
+        )
+    }
+
+    fun setResponseStyle(style: String) {
+        _uiState.value = _uiState.value.copy(
+            responseStyle = style,
+            statusBanner = "Stile risposta: $style"
+        )
+    }
+
+    fun toggleAutoCreateMeet(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(autoCreateMeet = enabled)
+    }
+
+    fun toggleSafetyBuffer(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(safetyBufferEnabled = enabled)
+    }
+
+    fun setSettingsDialogVisible(visible: Boolean) {
+        _uiState.value = _uiState.value.copy(showSettingsDialog = visible)
     }
 }

@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -78,12 +80,14 @@ fun EmailHubScreen(
                 )
             }
 
+            val vipInteraction = remember { MutableInteractionSource() }
             OutlinedButton(
                 onClick = { showVipDialog = true },
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MeditechCyanPrimary),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MeditechCyanPrimary),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                modifier = Modifier.emilPressScale(vipInteraction, pressedScale = 0.92f)
             ) {
                 Icon(imageVector = Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
@@ -324,11 +328,13 @@ fun EmailCard(
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = email.summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MeditechTextPrimary
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = email.summary,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp, lineHeight = 19.sp),
+                            color = MeditechTextPrimary
+                        )
+                    }
                 }
             }
 
@@ -356,11 +362,13 @@ fun EmailCard(
                             )
                         }
 
+                        val fissaInteraction = remember { MutableInteractionSource() }
                         Button(
                             onClick = onScheduleMeeting,
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MeditechTealActive),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.emilPressScale(fissaInteraction, pressedScale = 0.90f)
                         ) {
                             Text("Fissa Ora", style = MaterialTheme.typography.labelSmall)
                         }
@@ -393,11 +401,13 @@ fun EmailCard(
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = email.draftReply,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MeditechTextPrimary
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = email.draftReply,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.5.sp, lineHeight = 19.sp),
+                                color = MeditechTextPrimary
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
