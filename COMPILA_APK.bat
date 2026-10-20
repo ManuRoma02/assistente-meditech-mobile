@@ -12,11 +12,11 @@ if exist "C:\Program Files\Java\jdk-22" (
 if exist "%LOCALAPPDATA%\Android\Sdk" (
     set "ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk"
 )
-call "%~dp0gradlew.bat" assembleDebug
+call "%~dp0gradlew.bat" assembleRelease
 if %ERRORLEVEL% EQU 0 (
-    copy /Y "%~dp0app\build\outputs\apk\debug\app-debug.apk" "%~dp0Assistente_Meditech_Mobile.apk" >nul
+    copy /Y "%~dp0app\build\outputs\apk\release\app-release.apk" "%~dp0Assistente_Meditech_Mobile.apk" >nul
     echo.
-    echo [OK] APK MeDiTech compilato e pronto in:
+    echo [OK] APK MeDiTech Ottimizzato (R8 Minified - 1.9 MB) compilato e pronto in:
     echo      %~dp0Assistente_Meditech_Mobile.apk
 ) else (
     echo.

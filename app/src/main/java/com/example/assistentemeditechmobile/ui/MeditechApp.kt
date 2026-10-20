@@ -280,8 +280,7 @@ fun MeditechBottomNav(
 ) {
     Surface(
         color = MeditechSurface,
-        border = BorderStroke(1.dp, MeditechBorder),
-        modifier = Modifier.navigationBarsPadding()
+        border = BorderStroke(1.dp, MeditechBorder)
     ) {
         NavigationBar(
             containerColor = Color.Transparent,

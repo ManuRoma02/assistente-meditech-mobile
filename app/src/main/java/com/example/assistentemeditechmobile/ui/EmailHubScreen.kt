@@ -42,10 +42,12 @@ fun EmailHubScreen(
     var newVipEmail by remember { mutableStateOf("") }
     var newVipRole by remember { mutableStateOf("") }
 
-    val filteredEmails = when (selectedFilter) {
-        "VIP MeDiTech" -> uiState.emails.filter { it.isVip }
-        "Con Meeting" -> uiState.emails.filter { it.hasAppointmentProposal }
-        else -> uiState.emails
+    val filteredEmails = remember(uiState.emails, selectedFilter) {
+        when (selectedFilter) {
+            "VIP MeDiTech" -> uiState.emails.filter { it.isVip }
+            "Con Meeting" -> uiState.emails.filter { it.hasAppointmentProposal }
+            else -> uiState.emails
+        }
     }
 
     Column(

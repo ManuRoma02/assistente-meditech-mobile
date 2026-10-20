@@ -19,6 +19,7 @@ class VipRepository(private val context: Context) {
     }
 
     private val mutex = Mutex()
+    private var cachedVips: List<VipContact>? = null
     private val vipsFile: File
         get() = File(context.filesDir, "vip_contacts.json")
 
@@ -78,6 +79,7 @@ class VipRepository(private val context: Context) {
                 roleTitle = roleTitle.trim().ifBlank { "Contatto VIP" }
             )
             current.add(0, newVip)
+            cachedVips = current
             vipsFile.writeText(json.encodeToString(current))
             newVip
         }
@@ -88,6 +90,7 @@ class VipRepository(private val context: Context) {
             val current = getVipsInternal().toMutableList()
             val removed = current.removeAll { it.id == vipId }
             if (removed) {
+                cachedVips = current
                 vipsFile.writeText(json.encodeToString(current))
             }
             removed
@@ -100,9 +103,15 @@ class VipRepository(private val context: Context) {
     }
 
     private fun getVipsInternal(): List<VipContact> {
-        if (!vipsFile.exists()) return defaultVips
-        return runCatching {
+        cachedVips?.let { return it }
+        if (!vipsFile.exists()) {
+            cachedVips = defaultVips
+            return defaultVips
+        }
+        val loaded = runCatching {
             json.decodeFromString<List<VipContact>>(vipsFile.readText())
         }.getOrDefault(defaultVips)
+        cachedVips = loaded
+        return loaded
     }
 }
