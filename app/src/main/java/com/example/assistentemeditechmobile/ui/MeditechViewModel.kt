@@ -325,7 +325,16 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.UPDATE_AVAILABLE) {
                 _uiState.value = _uiState.value.copy(
                     isUpdateAvailable = true,
-                    updateManifest = result.manifest
+                    updateManifest = result.manifest,
+                    statusBanner = "Nuovo aggiornamento v${result.manifest?.latestVersionName} disponibile!"
+                )
+            } else if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.UP_TO_DATE) {
+                _uiState.value = _uiState.value.copy(
+                    statusBanner = "L'app è aggiornata all'ultima versione (v${result.currentVersionName})"
+                )
+            } else if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.ERROR) {
+                _uiState.value = _uiState.value.copy(
+                    statusBanner = "Verifica aggiornamenti: ${result.errorMessage ?: "Errore di rete"}"
                 )
             }
         }

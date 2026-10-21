@@ -119,7 +119,6 @@ fun MeditechSettingsSheet(
             val models = listOf(
                 "Qwen 3.5 - 2B HighIQ (Locale On-Device)" to "Consigliato • Modello 2B Q4_K_M (1.25 GB) 100% On-Device, zero cloud",
                 "Qwen 3.5 - 4B Instruct (Locale On-Device)" to "Potenziato • Alta capacità logica per perizie e cartelle cliniche (2.81 GB)",
-                "Qwen 2.5 - 1.5B (GGUF Leggero)" to "Leggero • Esecuzione fulminea con minimo consumo memoria (0.98 GB)",
                 "Rizzo Flow 1.7B (Decision Model)" to "Decision Model • Classificazione email e cartelle a 0 token generati"
             )
 
@@ -310,7 +309,7 @@ fun MeditechSettingsSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Verifica Aggiornamenti Git (v1.2.0 • Build 3)",
+                    text = "Verifica Aggiornamenti Git (v${viewModel.otaUpdateManager.getCurrentVersionName()} • Build #${viewModel.otaUpdateManager.getCurrentVersionCode()})",
                     style = MaterialTheme.typography.labelMedium,
                     color = MeditechCyanPrimary,
                     fontWeight = FontWeight.Bold
