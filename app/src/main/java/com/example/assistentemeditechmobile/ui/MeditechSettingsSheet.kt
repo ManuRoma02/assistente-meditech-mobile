@@ -108,7 +108,7 @@ fun MeditechSettingsSheet(
 
             // 1. Modello IA
             Text(
-                text = "MODELLO INTELLIGENZA ARTIFICIALE",
+                text = "MODELLO ON-DEVICE (OFFLINE & PRIVACY CLINICA)",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MeditechCyanDark,
@@ -117,10 +117,10 @@ fun MeditechSettingsSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             val models = listOf(
-                "Gemini 3.5 Flash" to "Consigliato • Ultra reattivo on-device",
-                "Gemini 3.8 Flash" to "Avanzato • Analisi clinica approfondita",
-                "Gemini 3.1 Flash-Lite" to "Economico • Risparmio token estremo",
-                "Gemini 2.5 Pro" to "Massima precisione diagnostica"
+                "Qwen 3.5 - 2B HighIQ (Locale On-Device)" to "Consigliato • Modello 2B Q4_K_M (1.25 GB) 100% On-Device, zero cloud",
+                "Qwen 3.5 - 4B Instruct (Locale On-Device)" to "Potenziato • Alta capacità logica per perizie e cartelle cliniche (2.81 GB)",
+                "Qwen 2.5 - 1.5B (GGUF Leggero)" to "Leggero • Esecuzione fulminea con minimo consumo memoria (0.98 GB)",
+                "Rizzo Flow 1.7B (Decision Model)" to "Decision Model • Classificazione email e cartelle a 0 token generati"
             )
 
             models.forEach { (modelName, desc) ->

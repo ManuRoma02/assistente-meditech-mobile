@@ -214,3 +214,35 @@ fun Modifier.cartoonAcousticPulse(
         scaleY = pulseScale
     }
 }
+
+/**
+ * Organic Cartoon Press Squash Feedback on GPU RenderThread.
+ * Compresses Y and bulges X slightly on press, then springs back like physical rubber.
+ */
+fun Modifier.cartoonPressSquash(
+    interactionSource: InteractionSource,
+    pressedScaleY: Float = 0.92f,
+    squashScaleX: Float = 1.05f
+): Modifier = composed {
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scaleY by animateFloatAsState(
+        targetValue = if (isPressed) pressedScaleY else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cartoon_squash_y"
+    )
+    val scaleX by animateFloatAsState(
+        targetValue = if (isPressed) squashScaleX else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cartoon_squash_x"
+    )
+    this.graphicsLayer {
+        this.scaleX = scaleX
+        this.scaleY = scaleY
+    }
+}
