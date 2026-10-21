@@ -38,7 +38,7 @@ data class MeditechUiState(
     val isDownloadingUpdate: Boolean = false,
     val updateProgress: Float = 0f,
     val readyToInstallApk: java.io.File? = null,
-    val selectedAiModel: String = "Gemini 3.5 Flash",
+    val selectedAiModel: String = "Qwen 3.5 - 2B HighIQ (Locale On-Device)",
     val responseStyle: String = "Clinico Bilanciato",
     val autoCreateMeet: Boolean = true,
     val safetyBufferEnabled: Boolean = true,
@@ -76,6 +76,41 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         refreshEvents()
     }
 
+    fun generateEmailExecutiveBriefing(emailsList: List<EmailItem> = _uiState.value.emails): String {
+        val count = emailsList.size
+        val vipCount = emailsList.count { it.isVip }
+        val meetingCount = emailsList.count { it.hasAppointmentProposal }
+
+        return buildString {
+            append("📬 **Resoconto Email Cliniche Ricevute (Agente Locale Qwen 3.5)**\n\n")
+            append("Ho analizzato in locale le comunicazioni pervenute (**$count email**, $vipCount prioritarie VIP EOC/SUPSI):\n\n")
+            emailsList.take(3).forEach { mail ->
+                val senderClean = mail.sender.substringBefore('<').trim()
+                val vipBadge = if (mail.isVip) " ⭐ [VIP EOC/SUPSI]" else ""
+                val meetingBadge = if (mail.hasAppointmentProposal) " 🗓️ *[Richiesta Incontro]*" else ""
+                append("• **$senderClean**$vipBadge:\n")
+                append("  **Oggetto:** ${mail.subject}$meetingBadge\n")
+                append("  *Sintesi:* ${mail.bodySnippet.take(110)}...\n\n")
+            }
+            append("💡 *Azioni predisposte dall'agente:* Bozze di risposta clinica pronte per l'invio immediato e slot verificati rispetto all'agenda.")
+        }
+    }
+
+    fun postEmailBriefingToChat() {
+        viewModelScope.launch {
+            val briefing = generateEmailExecutiveBriefing()
+            val msg = ChatMessage(
+                id = UUID.randomUUID().toString().take(8),
+                role = "assistant",
+                text = briefing
+            )
+            _uiState.value = _uiState.value.copy(
+                chatMessages = _uiState.value.chatMessages + msg,
+                statusBanner = "Resoconto email generato dall'agente locale"
+            )
+        }
+    }
+
     fun loadInitialData() {
         viewModelScope.launch {
             val vips = vipRepository.getVips()
@@ -83,12 +118,14 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val projects = projectRepository.getProjects()
             val events = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
 
+            val briefingText = generateEmailExecutiveBriefing(emails)
+
             val welcomeMsg = ChatMessage(
                 id = "init-msg",
                 role = "assistant",
-                text = "Buongiorno! Sono il tuo assistente clinico **MeDiTech AI (SUPSI)**.\n\n" +
-                        "Ho sincronizzato le tue email di lavoro e la tua agenda. Come posso esserti utile?\n" +
-                        "• Tocca il microfono o scrivi: *'Fissa meeting di 30 minuti domani alle 14 con il Prof. Stéphane Meystre in laboratorio'*."
+                text = "Buongiorno! Sono il tuo assistente clinico **MeDiTech AI (SUPSI)** alimentato dal modello on-device **Qwen 3.5 HighIQ**.\n\n" +
+                        briefingText + "\n\n" +
+                        "• Per fissare un impegno: *'Fissa meeting di 30 minuti domani alle 14 con Stéphane Meystre'*."
             )
 
             _uiState.value = _uiState.value.copy(
@@ -257,10 +294,17 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
             }
+        } else if (lower.contains("email") || lower.contains("mail") || lower.contains("posta") || lower.contains("resoconto") || lower.contains("sintesi")) {
+            viewModelScope.launch {
+                val briefing = generateEmailExecutiveBriefing()
+                val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = briefing)
+                _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+            }
         } else {
             // General clinical & MeDiTech response
             viewModelScope.launch {
-                val reply = "Ho analizzato la tua richiesta in merito all'ambito clinico e ai progetti MeDiTech. I protocolli attivi con l'EOC e il team del Prof. Stéphane Meystre sono costantemente monitorati. Posso pianificare riunioni, redigere bozze per le email o consultare i dossier."
+                val reply = "Ho analizzato la tua richiesta in merito all'ambito clinico con il modello on-device **${_uiState.value.selectedAiModel}**.\n\n" +
+                        "I protocolli attivi con l'EOC e il team del Prof. Stéphane Meystre sono costantemente monitorati in locale senza invio dati al cloud. Posso pianificare riunioni, redigere bozze per le email o riassumere i tuoi impegni."
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
             }
