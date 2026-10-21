@@ -332,7 +332,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 _uiState.value = _uiState.value.copy(
                     statusBanner = "L'app è aggiornata all'ultima versione (v${result.currentVersionName})"
                 )
-            } else if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.ERROR) {
+            } else if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.CHECK_FAILED) {
                 _uiState.value = _uiState.value.copy(
                     statusBanner = "Verifica aggiornamenti: ${result.errorMessage ?: "Errore di rete"}"
                 )
