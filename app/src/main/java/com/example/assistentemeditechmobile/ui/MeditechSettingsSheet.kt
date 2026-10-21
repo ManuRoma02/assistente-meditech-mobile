@@ -315,6 +315,42 @@ fun MeditechSettingsSheet(
                     fontWeight = FontWeight.Bold
                 )
             }
+
+            // Box Sintetico Novità Aggiornamenti con Parole Chiave in Grassetto
+            val latestNotes = uiState.updateManifest?.releaseNotes?.ifBlank { null }
+                ?: "• **Docking Unificato**: navigazione fluida a 3 sezioni integrata in basso\n• **Modelli On-Device**: supporto esclusivo **Qwen 3.5** (rimosso **Qwen 2.5**)\n• **Markdown Nativo**: eliminati asterischi grezzi con resa tipografica reale\n• **Briefing Email**: sintesi automatica locale delle comunicazioni cliniche\n• **Aggiornamenti OTA**: verifica e installazione rapida **1-Tap** da Git"
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MeditechSurface,
+                border = BorderStroke(1.dp, MeditechBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MeditechCyanPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Novità Versione v${viewModel.otaUpdateManager.getCurrentVersionName()}",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MeditechCyanDark
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = formatMeditechMessageText(raw = latestNotes, isUser = false),
+                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
+                        color = MeditechTextSecondary
+                    )
+                }
+            }
         }
     }
 }
