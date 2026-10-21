@@ -19,6 +19,7 @@ class OtaUpdateManager(private val context: Context) {
 
     companion object {
         const val DEFAULT_MANIFEST_URL = "https://raw.githubusercontent.com/ManuRoma02/assistente-meditech-mobile/main/ota-update.json"
+        const val FALLBACK_MANIFEST_URL = "https://raw.githubusercontent.com/ManuRoma02/assistente-meditech-mobile/master/ota-update.json"
         private const val CONNECT_TIMEOUT_MS = 15_000
         private const val READ_TIMEOUT_MS = 30_000
 
@@ -80,9 +81,12 @@ class OtaUpdateManager(private val context: Context) {
                 connection = (url.openConnection() as HttpURLConnection).apply {
                     connectTimeout = CONNECT_TIMEOUT_MS
                     readTimeout = READ_TIMEOUT_MS
+                    useCaches = false
                     requestMethod = "GET"
                     setRequestProperty("User-Agent", "MeDiTech-Android/${getCurrentVersionName()}")
                     setRequestProperty("Accept", "application/json")
+                    setRequestProperty("Cache-Control", "no-cache")
+                    setRequestProperty("Pragma", "no-cache")
                     instanceFollowRedirects = true
                 }
 
@@ -127,7 +131,12 @@ class OtaUpdateManager(private val context: Context) {
         val currentCode = explicitCurrentVersionCode ?: getCurrentVersionCode()
         val currentName = explicitCurrentVersionName ?: getCurrentVersionName()
 
-        val manifestResult = fetchRemoteManifest(manifestUrl)
+        var manifestResult = fetchRemoteManifest(manifestUrl)
+        if (manifestResult.isFailure && manifestUrl == DEFAULT_MANIFEST_URL) {
+            // Prova fallback sul branch master se main ha delay di propagazione CDN
+            manifestResult = fetchRemoteManifest(FALLBACK_MANIFEST_URL)
+        }
+
         if (manifestResult.isFailure) {
             return@withContext UpdateCheckResult(
                 status = UpdateCheckStatus.CHECK_FAILED,

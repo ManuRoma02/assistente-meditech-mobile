@@ -1,8 +1,8 @@
 {
-  "latestVersionCode": 2,
-  "latestVersionName": "1.1.0",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.1.0/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• Nuova Barra Unificata Studio in basso con docking 3 sezioni integrato\n• Modelli On-Device 100% Locali: Qwen 3.5 HighIQ e Qwen 3.5 4B Instruct (rimosso Qwen 2.5)\n• Formattazione Markdown nativa con rimozione completa asterischi grezzi\n• Resoconto automatico email cliniche generato dall'agente locale Qwen 3.5\n• Aggiornamenti OTA 1-Tap collegati direttamente a Git",
+  "latestVersionCode": 3,
+  "latestVersionName": "1.2.0",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.2.0/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• Nuova Barra Unificata Studio in basso con docking 3 sezioni integrato\n• Modelli On-Device 100% Locali: Qwen 3.5 HighIQ e Qwen 3.5 4B Instruct (rimosso completamente Qwen 2.5)\n• Formattazione Markdown nativa con rimozione completa asterischi grezzi\n• Resoconto automatico email cliniche generato dall'agente locale Qwen 3.5\n• Aggiornamenti OTA 1-Tap collegati direttamente al repository Git",
   "mandatory": false,
-  "publishedAt": "2026-10-21T13:00:00Z"
+  "publishedAt": "2026-10-21T13:15:00Z"
 }
