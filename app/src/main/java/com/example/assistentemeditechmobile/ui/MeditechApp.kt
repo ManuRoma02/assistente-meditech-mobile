@@ -133,10 +133,15 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MeditechCyanDark
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = manifest?.releaseNotes?.ifBlank { "Miglioramenti all'interfaccia unificata, modello locale on-device, resoconto email automatico e docking bar." } ?: "",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = formatMeditechMessageText(
+                            raw = manifest?.releaseNotes?.ifBlank {
+                                "• **Docking Unificato**: navigazione fluida a 3 sezioni integrata in basso\n• **Modelli On-Device**: supporto **Qwen 3.5** locale\n• **Markdown Nativo**: eliminati asterischi grezzi\n• **Briefing Email**: sintesi automatica comunicazioni\n• **Aggiornamenti OTA**: installazione rapida **1-Tap**"
+                            } ?: "",
+                            isUser = false
+                        ),
+                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 20.sp),
                         color = MeditechTextSecondary
                     )
                     if (uiState.isDownloadingUpdate) {
