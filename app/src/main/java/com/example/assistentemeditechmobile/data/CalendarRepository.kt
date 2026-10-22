@@ -144,6 +144,29 @@ class CalendarRepository(private val context: Context) {
     }
 
     /**
+     * Directly inserts an event into local calendar storage.
+     */
+    suspend fun addEvent(eventItem: CalendarEventItem): CalendarEventItem = withContext(Dispatchers.IO) {
+        val zone = ZoneId.systemDefault()
+        val startMillis = if (eventItem.startMillis > 0L) eventItem.startMillis else {
+            runCatching { LocalDateTime.parse(eventItem.startIso.take(19)).atZone(zone).toInstant().toEpochMilli() }.getOrDefault(System.currentTimeMillis())
+        }
+        val endMillis = if (eventItem.endMillis > 0L) eventItem.endMillis else {
+            runCatching { LocalDateTime.parse(eventItem.endIso.take(19)).atZone(zone).toInstant().toEpochMilli() }.getOrDefault(startMillis + (eventItem.durationMinutes * 60_000L))
+        }
+        val prepared = eventItem.copy(startMillis = startMillis, endMillis = endMillis)
+
+        mutex.withLock {
+            val current = getEventsInternal().toMutableList()
+            current.removeAll { it.id == prepared.id }
+            current.add(0, prepared)
+            cachedEvents = current
+            eventsFile.writeText(json.encodeToString(current))
+        }
+        prepared
+    }
+
+    /**
      * Instant 1-tap cancellation / undo for calendar events.
      */
     suspend fun cancelEvent(eventId: String): Boolean = withContext(Dispatchers.IO) {

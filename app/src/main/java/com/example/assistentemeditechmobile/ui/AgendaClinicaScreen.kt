@@ -263,8 +263,10 @@ fun EventCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val timeStart = event.startIso.substringAfter('T').take(5).ifBlank { "14:00" }
+                    val timeEnd = event.endIso.substringAfter('T').take(5).ifBlank { "15:00" }
                     Text(
-                        text = "${event.startIso.takeLast(8).take(5)} - ${event.endIso.takeLast(8).take(5)}",
+                        text = "$timeStart - $timeEnd",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MeditechCyanPrimary
@@ -366,12 +368,16 @@ fun EventCard(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MeditechCyanPrimary),
                         border = BorderStroke(1.dp, MeditechCyanPrimary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(imageVector = Icons.Default.VideoCall, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Google Meet", style = MaterialTheme.typography.labelMedium)
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Google Meet",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1
+                        )
                     }
                 }
 
@@ -384,13 +390,18 @@ fun EventCard(
                         containerColor = MeditechUrgentSoft,
                         contentColor = MeditechUrgentRed
                     ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = (if (event.isOnline) Modifier.wrapContentWidth() else Modifier.fillMaxWidth())
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = (if (event.isOnline) Modifier.weight(1f) else Modifier.fillMaxWidth())
                         .emilPressScale(cancelInteraction, pressedScale = 0.90f)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Annulla Appuntamento", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = if (event.isOnline) "Annulla" else "Annulla Appuntamento",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
                 }
             }
         }

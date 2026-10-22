@@ -11,6 +11,7 @@ import com.example.assistentemeditechmobile.domain.AppointmentParseResult
 import com.example.assistentemeditechmobile.domain.CalendarEventItem
 import com.example.assistentemeditechmobile.domain.ChatMessage
 import com.example.assistentemeditechmobile.domain.ClinicalProject
+import com.example.assistentemeditechmobile.domain.EmailAccountConfig
 import com.example.assistentemeditechmobile.domain.EmailItem
 import com.example.assistentemeditechmobile.domain.MeditechAiEngine
 import com.example.assistentemeditechmobile.domain.MeditechTab
@@ -20,6 +21,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 data class MeditechUiState(
@@ -27,6 +31,9 @@ data class MeditechUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val events: List<CalendarEventItem> = emptyList(),
     val emails: List<EmailItem> = emptyList(),
+    val emailAccountConfig: EmailAccountConfig = EmailAccountConfig(),
+    val showEmailConfigSheet: Boolean = false,
+    val selectedEmailDetail: EmailItem? = null,
     val projects: List<ClinicalProject> = emptyList(),
     val vips: List<VipContact> = emptyList(),
     val chatMessages: List<ChatMessage> = emptyList(),
@@ -76,23 +83,96 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         refreshEvents()
     }
 
+    fun setEmailConfigSheetVisible(visible: Boolean) {
+        _uiState.value = _uiState.value.copy(showEmailConfigSheet = visible)
+    }
+
+    fun openEmailDetail(email: EmailItem) {
+        viewModelScope.launch {
+            emailRepository.markAsRead(email.id)
+            val updated = emailRepository.getEmails()
+            _uiState.value = _uiState.value.copy(
+                emails = updated,
+                selectedEmailDetail = email.copy(isRead = true)
+            )
+        }
+    }
+
+    fun dismissEmailDetail() {
+        _uiState.value = _uiState.value.copy(selectedEmailDetail = null)
+    }
+
+    fun saveEmailAccountConfig(config: EmailAccountConfig) {
+        viewModelScope.launch {
+            emailRepository.saveEmailAccountConfig(config)
+            _uiState.value = _uiState.value.copy(
+                emailAccountConfig = config,
+                statusBanner = "Configurazione email '${config.emailAddress}' salvata con successo"
+            )
+        }
+    }
+
+    suspend fun testEmailConnection(config: EmailAccountConfig): Result<String> {
+        return emailRepository.testConnection(config)
+    }
+
+    fun simulateReceiveIncomingEmail() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isAiProcessing = true)
+            val newMail = emailRepository.simulateIncomingEmail()
+            val updatedEmails = emailRepository.getEmails()
+            _uiState.value = _uiState.value.copy(
+                isAiProcessing = false,
+                emails = updatedEmails,
+                statusBanner = "Nuova email ricevuta da ${newMail.sender.substringBefore('<').trim()}: Recap AI generato!"
+            )
+        }
+    }
+
+    fun addMeetingFromEmail(title: String, slotStr: String, durationMinutes: Int, contact: String) {
+        viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val now = LocalDateTime.now().plusDays(1).withHour(14).withMinute(0).withSecond(0).withNano(0)
+            val end = now.plusMinutes(durationMinutes.toLong())
+            val startMillis = now.atZone(zone).toInstant().toEpochMilli()
+            val endMillis = end.atZone(zone).toInstant().toEpochMilli()
+            val event = CalendarEventItem(
+                id = "ev-" + UUID.randomUUID().toString().take(6),
+                title = "Meeting: $title",
+                startIso = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                endIso = end.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                durationMinutes = durationMinutes,
+                location = "SUPSI MeDiTech / Google Meet",
+                contact = contact,
+                isOnline = true,
+                hangoutLink = "https://meet.google.com/mdt-clin-${UUID.randomUUID().toString().take(4)}",
+                startMillis = startMillis,
+                endMillis = endMillis
+            )
+            calendarRepository.addEvent(event)
+            refreshEvents()
+            _uiState.value = _uiState.value.copy(
+                statusBanner = "Meeting con '$contact' aggiunto all'Agenda Clinica!"
+            )
+        }
+    }
+
     fun generateEmailExecutiveBriefing(emailsList: List<EmailItem> = _uiState.value.emails): String {
         val count = emailsList.size
         val vipCount = emailsList.count { it.isVip }
-        val meetingCount = emailsList.count { it.hasAppointmentProposal }
 
         return buildString {
-            append("📬 **Resoconto Email Cliniche Ricevute (Agente Locale Qwen 3.5)**\n\n")
-            append("Ho analizzato in locale le comunicazioni pervenute (**$count email**, $vipCount prioritarie VIP EOC/SUPSI):\n\n")
+            append("• **Resoconto Email Cliniche Ricevute (Agente Locale Qwen 3.5)**\n\n")
+            append("Analizzate in locale **$count email** ($vipCount prioritarie VIP EOC/SUPSI):\n\n")
             emailsList.take(3).forEach { mail ->
                 val senderClean = mail.sender.substringBefore('<').trim()
-                val vipBadge = if (mail.isVip) " ⭐ [VIP EOC/SUPSI]" else ""
-                val meetingBadge = if (mail.hasAppointmentProposal) " 🗓️ *[Richiesta Incontro]*" else ""
-                append("• **$senderClean**$vipBadge:\n")
-                append("  **Oggetto:** ${mail.subject}$meetingBadge\n")
-                append("  *Sintesi:* ${mail.bodySnippet.take(110)}...\n\n")
+                val vipBadge = if (mail.isVip) " [VIP EOC/SUPSI]" else ""
+                val meetingBadge = if (mail.hasAppointmentProposal) " • *Richiesta Incontro*" else ""
+                append("• **$senderClean**$vipBadge$meetingBadge\n")
+                append("  **Oggetto:** ${mail.subject}\n")
+                append("  **Sintesi:** ${mail.summary}\n\n")
             }
-            append("💡 *Azioni predisposte dall'agente:* Bozze di risposta clinica pronte per l'invio immediato e slot verificati rispetto all'agenda.")
+            append("• *Azioni predisposte:* Bozze di risposta pronte e slot verificati rispetto all'agenda clinica.")
         }
     }
 
@@ -115,6 +195,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val vips = vipRepository.getVips()
             val emails = emailRepository.getEmails()
+            val config = emailRepository.getEmailAccountConfig()
             val projects = projectRepository.getProjects()
             val events = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
 
@@ -131,6 +212,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             _uiState.value = _uiState.value.copy(
                 vips = vips,
                 emails = emails,
+                emailAccountConfig = config,
                 projects = projects,
                 events = events,
                 chatMessages = listOf(welcomeMsg)
@@ -149,34 +231,31 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAiProcessing = true)
             val parsed = aiEngine.parseAppointmentInstruction(instruction)
-            val conflicts = calendarRepository.checkConflicts(parsed)
-
             val created = calendarRepository.createEvent(parsed)
             refreshEvents()
+            _uiState.value = _uiState.value.copy(isAiProcessing = false)
 
-            val confirmText = buildString {
-                append("**Appuntamento registrato con successo**\n\n")
-                append("• **Titolo:** ${created.title}\n")
-                append("• **Orario:** ${created.startIso.takeLast(8).take(5)} - ${created.endIso.takeLast(8).take(5)} (${created.durationMinutes} min)\n")
-                append("• **Sede:** ${created.location}\n")
-                append("• **Partecipante:** ${created.contact}\n\n")
+            val confirmationText = buildString {
+                append("• **Appuntamento Confermato in Agenda!**\n\n")
+                append("• **${created.title}**\n")
+                append("• Data: ${created.startIso.take(10)} dalle ${created.startIso.takeLast(8).take(5)} alle ${created.endIso.takeLast(8).take(5)}\n")
+                append("• Sede: ${created.location}\n")
+                if (created.contact.isNotBlank()) append("• Contatto: ${created.contact}\n")
                 if (created.isOnline && created.hangoutLink.isNotBlank()) {
-                    append("• **Collegamento Google Meet:** [Partecipa alla sessione](${created.hangoutLink})\n\n")
+                    append("• Link Videochiamata: ${created.hangoutLink}\n")
                 }
-                append("• **Promemoria attivati:** 24h, 2h e 1h prima.")
-                if (conflicts.isNotEmpty()) {
-                    append("\n\n[AVVISO SOVRAPPOSIZIONE] In calendario è già presente: *${conflicts.first().title}*.")
+                if (created.hasConflict) {
+                    append("\n[Attenzione Conflitto]: ${created.conflictDetails}")
                 }
             }
 
             val assistantMsg = ChatMessage(
                 id = UUID.randomUUID().toString().take(8),
                 role = "assistant",
-                text = confirmText
+                text = confirmationText,
+                appointmentProposal = parsed
             )
-
             _uiState.value = _uiState.value.copy(
-                isAiProcessing = false,
                 chatMessages = _uiState.value.chatMessages + assistantMsg,
                 statusBanner = "Appuntamento '${created.title}' registrato con successo"
             )
@@ -190,7 +269,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val welcomeMsg = ChatMessage(
                 id = UUID.randomUUID().toString().take(8),
                 role = "assistant",
-                text = "✨ **Cronologia ripulita con successo.**\n\nPronto per nuove richieste cliniche, pianificazione meeting e consultazione agenda."
+                text = "• **Cronologia ripulita con successo.**\n\nPronto per nuove richieste cliniche, pianificazione meeting e consultazione agenda."
             )
             _uiState.value = _uiState.value.copy(
                 chatMessages = listOf(welcomeMsg),
