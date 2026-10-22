@@ -1,0 +1,71 @@
+version: 1
+metadata:
+  ota:
+    minimum_version: 1.6.28
+project:
+  name: Assistente MeDiTech Mobile
+toolchains:
+  java:
+    version: '*'
+tools:
+  gradle: 9.1.0
+  kotlin: '*'
+tasks:
+  setup:
+    description: Hydrate Gradle dependencies through the repo wrapper
+    prepare:
+      kind: dependency_hydration
+      medium: package_dependencies
+      source:
+        kind: gradle
+        cwd: .
+        wrapper: true
+    requirements:
+      toolchains:
+      - java
+    effects:
+      writes:
+      - .gradle
+      network: true
+      network_kind: dependency_hydration
+    internal: true
+  build:
+    description: Assemble release APK for Assistente MeDiTech Mobile
+    command:
+      exe: ./gradlew
+      args:
+      - assembleRelease
+    requirements:
+      toolchains:
+      - java
+  test:
+    description: Run unit tests
+    command:
+      exe: ./gradlew
+      args:
+      - testReleaseUnitTest
+    requirements:
+      toolchains:
+      - java
+  lint:
+    description: Run Android Lint checks
+    command:
+      exe: ./gradlew
+      args:
+      - lintVitalRelease
+    requirements:
+      toolchains:
+      - java
+agent:
+  safe_tasks:
+  - setup
+  - test
+  - lint
+  writable_paths:
+  - app
+  - .gradle
+  - build
+  protected_paths:
+  - ota.yaml
+  - settings.gradle.kts
+  - gradle
