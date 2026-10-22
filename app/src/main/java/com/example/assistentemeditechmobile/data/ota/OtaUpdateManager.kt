@@ -71,7 +71,7 @@ class OtaUpdateManager(private val context: Context) {
      */
     suspend fun fetchRemoteManifest(manifestUrl: String): Result<OtaUpdateManifest> = withContext(Dispatchers.IO) {
         runCatching {
-            var currentUrl = manifestUrl
+            var currentUrl = if (manifestUrl.contains("?")) "$manifestUrl&_t=${System.currentTimeMillis()}" else "$manifestUrl?_t=${System.currentTimeMillis()}"
             var connection: HttpURLConnection? = null
             var redirects = 0
             val maxRedirects = 5
