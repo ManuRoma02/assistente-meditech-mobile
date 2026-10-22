@@ -259,7 +259,7 @@ fun ChatBubble(
                 color = if (isUser) MeditechCyanPrimary else MeditechSurface,
                 border = if (!isUser) BorderStroke(1.dp, MeditechBorder) else null,
                 shadowElevation = if (isUser) 2.dp else 1.dp,
-                modifier = Modifier.widthIn(max = 310.dp)
+                modifier = Modifier.fillMaxWidth(0.86f)
             ) {
                 Row(modifier = Modifier.height(IntrinsicSize.Min)) {
                     if (!isUser) {

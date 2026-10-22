@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistentemeditechmobile.theme.*
@@ -30,8 +31,10 @@ fun MeditechSettingsSheet(
     viewModel: MeditechViewModel,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         containerColor = MeditechSurface,
         dragHandle = {
@@ -58,7 +61,10 @@ fun MeditechSettingsSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Surface(
                         shape = CircleShape,
                         color = MeditechCyanSoft,
@@ -79,12 +85,16 @@ fun MeditechSettingsSheet(
                             text = "Impostazioni MeDiTech AI",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MeditechTextPrimary
+                            color = MeditechTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "Configurazione motore clinico & preferenze",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MeditechTextTertiary
+                            color = MeditechTextTertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -106,7 +116,7 @@ fun MeditechSettingsSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 1. Modello IA
+            // 1. Modello IA On-Device
             Text(
                 text = "MODELLO ON-DEVICE (OFFLINE & PRIVACY CLINICA)",
                 style = MaterialTheme.typography.labelSmall,
@@ -139,34 +149,48 @@ fun MeditechSettingsSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isSelected) MeditechCyanPrimary else MeditechBorder,
+                            modifier = Modifier.size(12.dp)
+                        ) {}
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = modelName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MeditechCyanDark else MeditechTextPrimary
+                                color = if (isSelected) MeditechCyanDark else MeditechTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = desc,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
                                 color = MeditechTextTertiary
                             )
                         }
 
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { viewModel.setAiModel(modelName) },
-                            colors = RadioButtonDefaults.colors(selectedColor = MeditechCyanPrimary)
-                        )
+                        if (isSelected) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Selezionato",
+                                tint = MeditechCyanPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // 2. Stile di Risposta
             Text(
@@ -185,30 +209,36 @@ fun MeditechSettingsSheet(
                 listOf("Veloce & Diretto", "Clinico Bilanciato", "Approfondito").forEach { style ->
                     val isSelected = uiState.responseStyle == style
                     val interaction = remember { MutableInteractionSource() }
+
                     Surface(
                         onClick = { viewModel.setResponseStyle(style) },
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) MeditechCyanPrimary else MeditechGroupedBg,
-                        border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else MeditechBorder),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) MeditechCyanSoft else MeditechGroupedBg,
+                        border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else Color.Transparent),
                         modifier = Modifier
                             .weight(1f)
                             .emilPressScale(interaction)
                     ) {
-                        Text(
-                            text = style,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else MeditechTextSecondary,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
+                        Box(
+                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = style,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) MeditechCyanDark else MeditechTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 3. Preferenze Agenda & Meeting
+            // 3. Automazione Clinica & Agenda
             Text(
                 text = "AUTOMAZIONE CLINICA & AGENDA",
                 style = MaterialTheme.typography.labelSmall,
@@ -234,7 +264,9 @@ fun MeditechSettingsSheet(
                                 text = "Link Google Meet Automatico",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MeditechTextPrimary
+                                color = MeditechTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "Genera videochiamata istantanea per riunioni online",
@@ -242,6 +274,7 @@ fun MeditechSettingsSheet(
                                 color = MeditechTextTertiary
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Switch(
                             checked = uiState.autoCreateMeet,
                             onCheckedChange = { viewModel.toggleAutoCreateMeet(it) },
@@ -261,7 +294,9 @@ fun MeditechSettingsSheet(
                                 text = "Buffer di Sicurezza (15 min)",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MeditechTextPrimary
+                                color = MeditechTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "Evita accavallamenti tra visite e impegni clinici",
@@ -269,6 +304,7 @@ fun MeditechSettingsSheet(
                                 color = MeditechTextTertiary
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Switch(
                             checked = uiState.safetyBufferEnabled,
                             onCheckedChange = { viewModel.toggleSafetyBuffer(it) },
@@ -280,7 +316,84 @@ fun MeditechSettingsSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 4. Aggiornamenti OTA Git
+            // 4. Configurazione Account Email (Apple Style)
+            Text(
+                text = "ACCOUNT EMAIL & SINCRONIZZAZIONE",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MeditechCyanDark,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MeditechCyanSoft,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = null,
+                                    tint = MeditechCyanPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.emailAccountConfig.emailAddress,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MeditechTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${uiState.emailAccountConfig.provider} • Sincronizzazione IMAP SSL attiva",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MeditechTextTertiary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    val configBtnInteraction = remember { MutableInteractionSource() }
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.setEmailConfigSheetVisible(true)
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, MeditechCyanPrimary),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MeditechCyanPrimary),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .emilPressScale(configBtnInteraction)
+                    ) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Configura Parametri Posta (IMAP / SMTP)", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 5. Aggiornamenti OTA Git
             Text(
                 text = "STATO DEL SISTEMA & AGGIORNAMENTI",
                 style = MaterialTheme.typography.labelSmall,
@@ -309,10 +422,12 @@ fun MeditechSettingsSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Verifica Aggiornamenti Git (v${viewModel.otaUpdateManager.getCurrentVersionName()} • Build #${viewModel.otaUpdateManager.getCurrentVersionCode()})",
+                    text = "Verifica Aggiornamenti (v${viewModel.otaUpdateManager.getCurrentVersionName()} • Build #${viewModel.otaUpdateManager.getCurrentVersionCode()})",
                     style = MaterialTheme.typography.labelMedium,
                     color = MeditechCyanPrimary,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 

@@ -16,6 +16,25 @@ enum class MeditechTab(val pageIndex: Int, val title: String) {
 
 @Immutable
 @Serializable
+data class EmailAccountConfig(
+    val emailAddress: String = "manuele@supsi.ch",
+    val displayName: String = "Prof. Manuele - SUPSI MeDiTech",
+    val provider: String = "SUPSI / EOC Webmail",
+    val imapHost: String = "mail.supsi.ch",
+    val imapPort: Int = 993,
+    val imapSsl: Boolean = true,
+    val smtpHost: String = "smtp.supsi.ch",
+    val smtpPort: Int = 587,
+    val smtpTls: Boolean = true,
+    val autoAiRecap: Boolean = true,
+    val vipFilterEnabled: Boolean = true,
+    val syncFrequencyMinutes: Int = 15,
+    val isConnected: Boolean = true,
+    val lastSyncTimeStr: String = "Oggi alle 10:15"
+)
+
+@Immutable
+@Serializable
 data class EmailItem(
     val id: String,
     val accountName: String,
