@@ -471,7 +471,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         val manifest = _uiState.value.updateManifest ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isDownloadingUpdate = true, updateProgress = 0f)
-            val result = otaUpdateManager.downloadApk(manifest.downloadUrl, manifest.latestVersionCode) { progress, _, _ ->
+            val result = otaUpdateManager.downloadApk(manifest.downloadUrl, manifest.latestVersionCode, manifest.sha256) { progress, _, _ ->
                 _uiState.value = _uiState.value.copy(updateProgress = progress)
             }
             _uiState.value = _uiState.value.copy(isDownloadingUpdate = false)

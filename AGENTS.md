@@ -15,6 +15,7 @@ Use only declared `ota run <task>` paths. If the contract does not model the wor
   - `setup` (`ota run setup`)
   - `test` (`ota run test`)
   - `lint` (`ota run lint`)
+  - `build` (`ota run build`)
 - `safe_task_risk_signals`:
   - `setup`: writes=.gradle; network=dependency_hydration
 - `writable_paths`: `app`, `.gradle`, `build`

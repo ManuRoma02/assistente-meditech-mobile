@@ -91,4 +91,32 @@ class OtaUpdateTest {
         assertEquals("1.2.1", eval.manifest?.latestVersionName)
         assertTrue(eval.manifest?.downloadUrl?.endsWith(".apk") == true)
     }
+
+    @Test
+    fun testComputeSha256ProducesAccurateHash() {
+        val tempFile = java.io.File.createTempFile("test_sha256", ".txt")
+        try {
+            tempFile.writeText("MeDiTech_Security_Hardened")
+            val hash = OtaUpdateManager.computeSha256(tempFile)
+            assertNotNull(hash)
+            assertEquals(64, hash.length) // SHA-256 produces 64 hex characters
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun testManifestWithSha256Deserialization() {
+        val json = """
+            {
+              "latestVersionCode": 5,
+              "latestVersionName": "1.3.0",
+              "downloadUrl": "https://example.com/app.apk",
+              "sha256": "3beb1df856676ba3b720dbdffecc813e23b0f027b3ff24dac309d270140d9812"
+            }
+        """.trimIndent()
+        val parsed = OtaUpdateManifest.fromJson(json).getOrNull()
+        assertNotNull(parsed)
+        assertEquals("3beb1df856676ba3b720dbdffecc813e23b0f027b3ff24dac309d270140d9812", parsed?.sha256)
+    }
 }

@@ -7,9 +7,6 @@ project:
 toolchains:
   java:
     version: '*'
-tools:
-  gradle: 9.1.0
-  kotlin: '*'
 tasks:
   setup:
     description: Hydrate Gradle dependencies through the repo wrapper
@@ -43,7 +40,7 @@ tasks:
     command:
       exe: ./gradlew
       args:
-      - testReleaseUnitTest
+      - test
     requirements:
       toolchains:
       - java
@@ -61,6 +58,7 @@ agent:
   - setup
   - test
   - lint
+  - build
   writable_paths:
   - app
   - .gradle

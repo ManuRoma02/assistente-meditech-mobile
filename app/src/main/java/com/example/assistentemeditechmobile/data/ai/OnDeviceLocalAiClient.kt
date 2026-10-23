@@ -162,7 +162,7 @@ class OnDeviceLocalAiClient {
             val mb = file.length() / (1024 * 1024)
             OnDeviceModelStatus(
                 exists = true,
-                path = file.absolutePath,
+                path = file.canonicalPath,
                 sizeBytes = file.length(),
                 quantization = "4-bit (Q4_K_M)",
                 statusText = "Modello Qwen 3.5 2B (4-bit Q4_K_M) verificato su storage smartphone (${mb} MB). Pronto per inferenza offline."
@@ -172,9 +172,20 @@ class OnDeviceLocalAiClient {
                 exists = false,
                 path = pathClean,
                 quantization = "4-bit (Q4_K_M)",
-                statusText = "File pesi non trovato in: $pathClean. Copia 'qwen3.5-2b-q4_k_m.gguf' nei Download dello smartphone. Il motore clinico integrato locale garantisce piena operatività offline."
+                statusText = "File pesi non trovato in: $pathClean. Copia 'qwen3.5-2b-q4_k_m.gguf' nei Download o nella memoria app dello smartphone. Il motore clinico integrato locale garantisce piena operatività offline."
             )
         }
+    }
+
+    /**
+     * Neutralizza i token speciali di controllo ChatML per prevenire attacchi di Delimiter Injection (CWE-1426, OWASP LLM01).
+     */
+    fun sanitizeForChatMl(input: String): String {
+        return input
+            .replace("<|im_start|>", "")
+            .replace("<|im_end|>", "")
+            .replace("<|endoftext|>", "")
+            .replace("<|im_sep|>", "")
     }
 
     /**
@@ -186,13 +197,13 @@ class OnDeviceLocalAiClient {
         systemPrompt: String = DEFAULT_SYSTEM_PROMPT
     ): String = buildString {
         append("<|im_start|>system\n")
-        append(systemPrompt.trim())
+        append(sanitizeForChatMl(systemPrompt).trim())
         append("<|im_end|>\n")
 
         messages.takeLast(8).forEach { msg ->
             val role = if (msg.role == "user") "user" else "assistant"
             append("<|im_start|>$role\n")
-            append(msg.text.trim())
+            append(sanitizeForChatMl(msg.text).trim())
             append("<|im_end|>\n")
         }
         append("<|im_start|>assistant\n")

@@ -10,7 +10,8 @@ data class OtaUpdateManifest(
     val downloadUrl: String,
     val releaseNotes: String = "",
     val mandatory: Boolean = false,
-    val publishedAt: String = ""
+    val publishedAt: String = "",
+    val sha256: String = ""
 ) {
     companion object {
         private val json = Json {

@@ -14,6 +14,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 
 class OtaUpdateManager(private val context: Context) {
 
@@ -22,6 +23,21 @@ class OtaUpdateManager(private val context: Context) {
         const val FALLBACK_MANIFEST_URL = "https://raw.githubusercontent.com/ManuRoma02/assistente-meditech-mobile/master/ota-update.json"
         private const val CONNECT_TIMEOUT_MS = 15_000
         private const val READ_TIMEOUT_MS = 30_000
+
+        /**
+         * Calcola l'hash crittografico SHA-256 in esadecimale minuscolo per un file (CWE-494).
+         */
+        fun computeSha256(file: File): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                var read: Int
+                while (input.read(buffer).also { read = it } != -1) {
+                    digest.update(buffer, 0, read)
+                }
+            }
+            return digest.digest().joinToString("") { "%02x".format(it) }
+        }
 
         /**
          * Verifica logica di disponibilità aggiornamento (testabile senza contesto Android).
@@ -151,14 +167,20 @@ class OtaUpdateManager(private val context: Context) {
     }
 
     /**
-     * Scarica l'APK fornito nel downloadUrl nella cache dell'app notificando il progresso.
+     * Scarica l'APK fornito nel downloadUrl nella cache dell'app notificando il progresso,
+     * verificando la sicurezza HTTPS e l'eventuale integrità crittografica SHA-256 (CWE-494).
      */
     suspend fun downloadApk(
         downloadUrl: String,
         targetVersionCode: Int = 0,
+        expectedSha256: String = "",
         onProgress: (progress: Float, downloadedBytes: Long, totalBytes: Long) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
         runCatching {
+            if (!downloadUrl.startsWith("https://", ignoreCase = true)) {
+                error("Protocollo non sicuro: il download degli aggiornamenti richiede obbligatoriamente HTTPS.")
+            }
+
             val updatesDir = File(context.cacheDir, "updates").apply {
                 if (!exists()) mkdirs()
             }
@@ -171,6 +193,9 @@ class OtaUpdateManager(private val context: Context) {
             val maxRedirects = 5
 
             while (redirects < maxRedirects) {
+                if (!currentUrl.startsWith("https://", ignoreCase = true)) {
+                    error("Reindirizzamento verso endpoint HTTP non cifrato intercettato e bloccato.")
+                }
                 val url = URL(currentUrl)
                 connection = (url.openConnection() as HttpURLConnection).apply {
                     connectTimeout = CONNECT_TIMEOUT_MS
@@ -238,6 +263,15 @@ class OtaUpdateManager(private val context: Context) {
             conn.disconnect()
 
             if (tempFile.exists() && tempFile.length() > 0) {
+                // Verifica integrità crittografica SHA-256 se fornita dal manifest
+                if (expectedSha256.isNotBlank()) {
+                    val actualSha256 = computeSha256(tempFile)
+                    if (!actualSha256.equals(expectedSha256.trim(), ignoreCase = true)) {
+                        tempFile.delete()
+                        error("Verifica integrità SHA-256 fallita: l'hash del file ($actualSha256) non corrisponde a quello atteso ($expectedSha256).")
+                    }
+                }
+
                 if (destinationFile.exists()) destinationFile.delete()
                 tempFile.renameTo(destinationFile)
                 destinationFile

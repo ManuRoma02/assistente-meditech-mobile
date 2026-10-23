@@ -4,5 +4,6 @@
   "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.2.1/Assistente_Meditech_Mobile.apk",
   "releaseNotes": "• **Configurazione Email**: setup **1-Tap** per SUPSI, EOC e Outlook con test SSL/TLS\n• **Apple Design**: fogli modali a schermo intero e grafica **Liquid Glass** rifinita\n• **Recap Intelligente**: sintesi automatica on-device all'arrivo delle comunicazioni\n• **Agenda Clinica**: sincronizzazione riunioni e allineamento orari **1-Tap**\n• **Responsività**: eliminati a capo anomali e ottimizzata la leggibilità",
   "mandatory": false,
-  "publishedAt": "2026-10-22T10:45:00Z"
+  "publishedAt": "2026-10-22T10:45:00Z",
+  "sha256": "b15338355240dc8d2fc8d6f742da9e2db68552f27580debd3dd330e32c468efe"
 }
