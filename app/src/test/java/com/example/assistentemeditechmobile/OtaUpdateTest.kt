@@ -5,6 +5,7 @@ import com.example.assistentemeditechmobile.data.ota.OtaUpdateManifest
 import com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -63,5 +64,31 @@ class OtaUpdateTest {
         assertEquals(3, parsed!!.latestVersionCode)
         assertEquals("1.0.2", parsed.latestVersionName)
         assertTrue(parsed.mandatory)
+    }
+
+    @Test
+    fun testRealOtaUpdateJsonDetectsVersion4AvailableFromCurrentVersion3() {
+        val otaJson = """
+        {
+          "latestVersionCode": 4,
+          "latestVersionName": "1.2.1",
+          "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.2.1/Assistente_Meditech_Mobile.apk",
+          "releaseNotes": "• Configurazione Email\n• Apple Design\n• Recap Intelligente",
+          "mandatory": false,
+          "publishedAt": "2026-10-22T10:45:00Z"
+        }
+        """.trimIndent()
+
+        val parsed = OtaUpdateManifest.fromJson(otaJson).getOrNull()
+        assertNotNull(parsed)
+        assertEquals(4, parsed!!.latestVersionCode)
+        assertEquals("1.2.1", parsed.latestVersionName)
+
+        val currentVersionCode = 3
+        val currentVersionName = "1.2.0"
+        val eval = OtaUpdateManager.evaluateUpdate(parsed, currentVersionCode, currentVersionName)
+        assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, eval.status)
+        assertEquals("1.2.1", eval.manifest?.latestVersionName)
+        assertTrue(eval.manifest?.downloadUrl?.endsWith(".apk") == true)
     }
 }

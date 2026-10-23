@@ -166,9 +166,9 @@ fun MeditechAiChatScreen(
                 AnimatedVisibility(
                     visible = true,
                     enter = scaleIn(
-                        animationSpec = CartoonyHighBouncySpring,
-                        initialScale = 0.88f
-                    ) + fadeIn(tween(220))
+                        animationSpec = MeditechClinicalSpring,
+                        initialScale = 0.94f
+                    ) + fadeIn(tween(180))
                 ) {
                     ChatBubble(
                         message = message,

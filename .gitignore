@@ -6,10 +6,15 @@
 /build
 app/build/
 *.apk
-
+*.env
+telegram_config.env
+INVIA_APK_SU_TELEGRAM.bat
 
 # Ota local runtime artifacts
 .ota/state/*
 .ota/contracts/*
 .ota/receipts/*
 .ota/proof/*
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

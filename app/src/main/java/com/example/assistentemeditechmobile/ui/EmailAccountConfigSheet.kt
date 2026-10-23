@@ -62,7 +62,7 @@ fun EmailAccountConfigSheet(
                 smtpHost = "smtp.supsi.ch"
                 smtpPort = "587"
                 if (!emailAddress.endsWith("@supsi.ch") && !emailAddress.endsWith("@eoc.ch")) {
-                    emailAddress = "manuele@supsi.ch"
+                    emailAddress = "utente@supsi.ch"
                 }
             }
             "Outlook 365" -> {

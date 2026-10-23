@@ -145,7 +145,7 @@ fun EmailHubScreen(
                     border = BorderStroke(1.dp, MeditechBorderCyan),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = MeditechSurface),
                     contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
-                    modifier = Modifier.emilPressScale(vipInteraction, pressedScale = 0.92f)
+                    modifier = Modifier.emilPressScale(vipInteraction, pressedScale = 0.95f)
                 ) {
                     Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = MeditechCyanPrimary, modifier = Modifier.size(15.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -452,6 +452,24 @@ fun EmailCard(
                             )
                         }
                     }
+
+                    if (email.language == "en") {
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF1F5F9)
+                        ) {
+                            Text(
+                                text = "EN",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -581,7 +599,7 @@ fun EmailCard(
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isAddedToAgenda) MeditechTealSoft else MeditechCyanSoft,
-                                modifier = Modifier.emilPressScale(agendaInteraction, pressedScale = 0.92f)
+                                modifier = Modifier.emilPressScale(agendaInteraction, pressedScale = 0.95f)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

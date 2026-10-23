@@ -1,5 +1,6 @@
 package com.example.assistentemeditechmobile.ui
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -13,16 +14,43 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 /**
- * Emil Kowalski & Cartoony Animation Architecture (/emilkowalski-animation).
+ * Emil Kowalski & Apple HIG Animation Architecture (/emilkowalski-animation).
  * Runs strictly on GPU RenderThread via graphicsLayer (skips Recomposition & Layout).
- * Delivers juicy, tactile, physics-based cartoon motion for all user actions.
+ * Delivers clean, tactile, physics-based motion with haptic synchronization.
  */
+
+val LocalReducedMotion = staticCompositionLocalOf { false }
+
+/**
+ * Standard Clinical Motion Tokens:
+ * Decoupled from rubber-banding for high-frequency clinical interactions (100+/day).
+ */
+val MeditechClinicalSpring = spring<Float>(
+    dampingRatio = 0.78f, // Assestamento rapido senza oscillazioni multiple fastidiose
+    stiffness = 450f
+)
+
+val MeditechTactilePressSpring = spring<Float>(
+    dampingRatio = 0.72f, // Risposta immediata al pollice con rimbalzo sottile
+    stiffness = 600f
+)
+
+val MeditechSheetSpring = spring<Float>(
+    dampingRatio = 0.82f,
+    stiffness = 380f
+)
+
+val MeditechDecelEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
 val CartoonyBouncySpring = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -40,20 +68,27 @@ val CartoonySnappySpring = spring<Float>(
 )
 
 /**
- * Emil Kowalski Press Feedback on GPU RenderThread.
- * Scales down on press, springs back with satisfying tactile bounce.
+ * Emil Kowalski Press Feedback on GPU RenderThread with tactile Haptics.
+ * Calibrated scale (0.975f for cards, 0.94f for small buttons) + immediate haptic tick.
  */
 fun Modifier.emilPressScale(
     interactionSource: InteractionSource,
-    pressedScale: Float = 0.93f
+    pressedScale: Float = 0.975f
 ): Modifier = composed {
     val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            runCatching {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
+        }
+    }
+
     val scale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
+        animationSpec = MeditechTactilePressSpring,
         label = "emilPressScale"
     )
     this.graphicsLayer {

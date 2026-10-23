@@ -81,7 +81,7 @@ fun EmailDetailSheet(
                     color = MeditechCyanSoft
                 ) {
                     Text(
-                        text = email.accountName,
+                        text = if (email.language == "en") "${email.accountName} • EN" else email.accountName,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MeditechCyanDark,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)

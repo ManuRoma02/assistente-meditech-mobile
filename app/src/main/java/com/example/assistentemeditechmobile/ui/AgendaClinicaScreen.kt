@@ -97,7 +97,7 @@ fun AgendaClinicaScreen(
                     modifier = Modifier
                         .size(44.dp)
                         .background(MeditechCyanPrimary, CircleShape)
-                        .emilPressScale(addInteraction, pressedScale = 0.90f)
+                        .emilPressScale(addInteraction, pressedScale = 0.94f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -392,7 +392,7 @@ fun EventCard(
                     ),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     modifier = (if (event.isOnline) Modifier.weight(1f) else Modifier.fillMaxWidth())
-                        .emilPressScale(cancelInteraction, pressedScale = 0.90f)
+                        .emilPressScale(cancelInteraction, pressedScale = 0.94f)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -438,7 +438,7 @@ fun DateSelectorRow(
                 border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else MeditechBorder),
                 modifier = Modifier
                     .width(64.dp)
-                    .emilPressScale(dateInteraction, pressedScale = 0.92f)
+                    .emilPressScale(dateInteraction, pressedScale = 0.96f)
             ) {
                 Column(
                     modifier = Modifier.padding(vertical = 8.dp),

@@ -12,8 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +31,7 @@ fun MeditechSettingsSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var localOnDevicePath by remember { mutableStateOf(uiState.onDeviceModelPath) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -116,9 +116,52 @@ fun MeditechSettingsSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 1. Modello IA On-Device
+            // 1. Privacy Clinica & Architettura 100% On-Device
             Text(
-                text = "MODELLO ON-DEVICE (OFFLINE & PRIVACY CLINICA)",
+                text = "PROTEZIONE PRIVACY & DATI CLINICI",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MeditechTealActive,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MeditechTealSoft),
+                border = BorderStroke(1.dp, MeditechTealActive.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MeditechTealActive,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "100% On-Device Locale (Zero Cloud)",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MeditechTealActive
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "I dati sanitari, le note dei pazienti, l'agenda con il Prof. Stéphane Meystre e la corrispondenza sono protetti e rimangono rigorosamente all'interno di questo smartphone. Nessuna API cloud esterna riceve informazioni cliniche, in conformità con la LPD Svizzera e il GDPR art. 9.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.5.sp),
+                        color = MeditechTextPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 2. Modello AI Locale: Unica Opzione Attiva (Qwen 3.5 2B 4-bit)
+            Text(
+                text = "MODELLO AI ATTIVO (UNICA OPZIONE CONSENTITA)",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MeditechCyanDark,
@@ -126,64 +169,177 @@ fun MeditechSettingsSheet(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            val models = listOf(
-                "Qwen 3.5 - 2B HighIQ (Locale On-Device)" to "Consigliato • Modello 2B Q4_K_M (1.25 GB) 100% On-Device, zero cloud",
-                "Qwen 3.5 - 4B Instruct (Locale On-Device)" to "Potenziato • Alta capacità logica per perizie e cartelle cliniche (2.81 GB)",
-                "Rizzo Flow 1.7B (Decision Model)" to "Decision Model • Classificazione email e cartelle a 0 token generati"
-            )
-
-            models.forEach { (modelName, desc) ->
-                val isSelected = uiState.selectedAiModel == modelName
-                val interaction = remember { MutableInteractionSource() }
-
-                Surface(
-                    onClick = { viewModel.setAiModel(modelName) },
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (isSelected) MeditechCyanUltraLight else MeditechSurface,
-                    border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else MeditechBorder),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .emilPressScale(interaction)
-                ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
+                border = BorderStroke(1.5.dp, MeditechCyanPrimary),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = if (isSelected) MeditechCyanPrimary else MeditechBorder,
-                            modifier = Modifier.size(12.dp)
+                            color = MeditechCyanPrimary,
+                            modifier = Modifier.size(14.dp)
                         ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = uiState.selectedAiModel,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MeditechCyanDark,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Attivo",
+                            tint = MeditechCyanPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Modello locale compatto quantizzato a 4-bit per architetture ARM64. Elaborazione neurale interamente sul processore dello smartphone (NPU/CPU) con zero emissione di token all'esterno.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                        color = MeditechTextSecondary
+                    )
 
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = modelName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MeditechCyanDark else MeditechTextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = desc,
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
-                                color = MeditechTextTertiary
-                            )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Specifiche tecniche
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MeditechSurface,
+                            border = BorderStroke(0.8.dp, MeditechBorder),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text("Quantizzazione", fontSize = 10.5.sp, color = MeditechTextTertiary)
+                                Text("4-bit Q4_K_M", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MeditechTextPrimary)
+                            }
                         }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MeditechSurface,
+                            border = BorderStroke(0.8.dp, MeditechBorder),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text("Dimensione", fontSize = 10.5.sp, color = MeditechTextTertiary)
+                                Text("~1.25 GB", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MeditechTextPrimary)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MeditechSurface,
+                            border = BorderStroke(0.8.dp, MeditechBorder),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text("Isolamento", fontSize = 10.5.sp, color = MeditechTextTertiary)
+                                Text("Zero Cloud", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MeditechTealActive)
+                            }
+                        }
+                    }
+                }
+            }
 
-                        if (isSelected) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Selezionato",
-                                tint = MeditechCyanPrimary,
-                                modifier = Modifier.size(18.dp)
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 3. Storage Pesi Modello Locale su Telefono
+            Text(
+                text = "STORAGE FILE PESI MODELLO (.GGUF / .BIN)",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MeditechCyanDark,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
+                border = BorderStroke(1.dp, MeditechBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "Percorso File su Memoria Smartphone:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MeditechTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Posiziona il file pesi quantizzato 'qwen3.5-2b-q4_k_m.gguf' nella memoria interna.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                        color = MeditechTextTertiary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = localOnDevicePath,
+                        onValueChange = {
+                            localOnDevicePath = it
+                            viewModel.updateOnDeviceModelPath(it)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                        placeholder = { Text("es: /sdcard/Download/qwen3.5-2b-q4_k_m.gguf", fontSize = 12.sp) }
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    val testPathInteraction = remember { MutableInteractionSource() }
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.updateOnDeviceModelPath(localOnDevicePath)
+                            viewModel.checkOnDeviceModelFile(localOnDevicePath)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MeditechCyanPrimary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .emilPressScale(testPathInteraction, pressedScale = 0.96f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = MeditechCyanPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Verifica File Pesi su Smartphone",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MeditechCyanPrimary
+                        )
+                    }
+
+                    if (uiState.onDeviceModelStatus != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val isFound = uiState.onDeviceModelStatus.contains("verificato", ignoreCase = true) ||
+                                uiState.onDeviceModelStatus.contains("pronto", ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isFound) MeditechTealSoft else MeditechUrgentSoft,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = uiState.onDeviceModelStatus,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                                color = if (isFound) MeditechTealActive else MeditechUrgentRed,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             )
                         }
                     }
@@ -429,6 +585,53 @@ fun MeditechSettingsSheet(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+
+            if (uiState.isUpdateAvailable) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MeditechTealSoft),
+                    border = BorderStroke(1.2.dp, MeditechTealActive),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.CloudDownload,
+                                contentDescription = null,
+                                tint = MeditechTealActive,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Aggiornamento v${uiState.updateManifest?.latestVersionName ?: "Disponibile"} Rilevato!",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MeditechTealActive
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "È disponibile una nuova versione Git (Build #${uiState.updateManifest?.latestVersionCode ?: 4}). Puoi scaricarla e installarla con 1-Tap.",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                            color = MeditechTextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = {
+                                onDismiss() // Chiude il foglio impostazioni e apre il dialog di aggiornamento 1-Tap
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MeditechTealActive),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Apri Installazione 1-Tap", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
 
             // Box Sintetico Novità Aggiornamenti con Parole Chiave in Grassetto

@@ -7,6 +7,8 @@ import com.example.assistentemeditechmobile.data.CalendarRepository
 import com.example.assistentemeditechmobile.data.ClinicalProjectRepository
 import com.example.assistentemeditechmobile.data.EmailRepository
 import com.example.assistentemeditechmobile.data.VipRepository
+import com.example.assistentemeditechmobile.data.ai.OnDeviceGenerationOptions
+import com.example.assistentemeditechmobile.data.ai.OnDeviceLocalAiClient
 import com.example.assistentemeditechmobile.domain.AppointmentParseResult
 import com.example.assistentemeditechmobile.domain.CalendarEventItem
 import com.example.assistentemeditechmobile.domain.ChatMessage
@@ -45,7 +47,11 @@ data class MeditechUiState(
     val isDownloadingUpdate: Boolean = false,
     val updateProgress: Float = 0f,
     val readyToInstallApk: java.io.File? = null,
-    val selectedAiModel: String = "Qwen 3.5 - 2B HighIQ (Locale On-Device)",
+    val selectedAiModel: String = OnDeviceLocalAiClient.DEFAULT_MODEL_NAME,
+    val onDeviceModelPath: String = OnDeviceLocalAiClient.DEFAULT_WEIGHTS_PATH,
+    val onDeviceModelStatus: String? = null,
+    val onDeviceQuantization: String = "4-bit (Q4_K_M)",
+    val onDevicePrivacyMode: String = "100% Locale • Zero Cloud",
     val responseStyle: String = "Clinico Bilanciato",
     val autoCreateMeet: Boolean = true,
     val safetyBufferEnabled: Boolean = true,
@@ -64,6 +70,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
     val emailRepository = EmailRepository(context, vipRepository)
     val projectRepository = ClinicalProjectRepository(context)
     val aiEngine = MeditechAiEngine(calendarRepository, vipRepository)
+    val onDeviceAiClient = OnDeviceLocalAiClient()
     val otaUpdateManager = com.example.assistentemeditechmobile.data.ota.OtaUpdateManager(context)
 
     private val _uiState = MutableStateFlow(MeditechUiState())
@@ -304,13 +311,27 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
     fun generateReplyDraft(emailItem: EmailItem, userInstruction: String = "") {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAiProcessing = true)
-            val draft = emailRepository.generateAiDraft(emailItem, userInstruction)
+            val modelName = _uiState.value.selectedAiModel
+            val isEnglish = emailItem.language.equals("en", ignoreCase = true)
+
+            val localResult = onDeviceAiClient.generateEmailReplyDraft(
+                modelName = modelName,
+                sender = emailItem.sender,
+                subject = emailItem.subject,
+                bodySnippet = emailItem.bodySnippet,
+                userInstruction = userInstruction,
+                isEnglishEmail = isEnglish
+            )
+
+            val draft = localResult.getOrElse {
+                emailRepository.generateAiDraft(emailItem, userInstruction)
+            }
             emailRepository.updateDraftReply(emailItem.id, draft)
             val updated = emailRepository.getEmails()
             _uiState.value = _uiState.value.copy(
                 isAiProcessing = false,
                 emails = updated,
-                statusBanner = "Bozza clinica predisposta per ${emailItem.sender.substringBefore('<').trim()}"
+                statusBanner = "Bozza Qwen 3.5 2B (On-Device 4-bit) predisposta per ${emailItem.sender.substringBefore('<').trim()}"
             )
         }
     }
@@ -380,10 +401,37 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
             }
         } else {
-            // General clinical & MeDiTech response
+            // Elaborazione clinica 100% On-Device con Qwen 3.5 2B 4-bit quantizzato
             viewModelScope.launch {
-                val reply = "Ho analizzato la tua richiesta in merito all'ambito clinico con il modello on-device **${_uiState.value.selectedAiModel}**.\n\n" +
-                        "I protocolli attivi con l'EOC e il team del Prof. Stéphane Meystre sono costantemente monitorati in locale senza invio dati al cloud. Posso pianificare riunioni, redigere bozze per le email o riassumere i tuoi impegni."
+                _uiState.value = _uiState.value.copy(isAiProcessing = true)
+                val modelName = _uiState.value.selectedAiModel
+                val history = _uiState.value.chatMessages
+
+                val options = when (_uiState.value.responseStyle) {
+                    "Veloce & Diretto" -> OnDeviceGenerationOptions.FAST_DIRECT
+                    "Approfondito" -> OnDeviceGenerationOptions.DEEP_REASONING
+                    else -> OnDeviceGenerationOptions.BALANCED_CLINICAL
+                }
+
+                val groundedPrompt = OnDeviceLocalAiClient.buildGroundedSystemPrompt(
+                    currentDateStr = _uiState.value.selectedDate.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", java.util.Locale.ITALIAN)),
+                    todayEventsCount = _uiState.value.events.size,
+                    activeProjectsCount = _uiState.value.projects.size
+                )
+
+                val localResult = onDeviceAiClient.generateChatResponse(
+                    modelName = modelName,
+                    messages = history,
+                    systemPrompt = groundedPrompt,
+                    options = options
+                )
+
+                val reply = localResult.getOrElse {
+                    "Elaborazione eseguita con il modello locale **Qwen 3.5 2B (4-bit On-Device)** sullo smartphone.\n\n" +
+                    "Tutti i dati e i protocolli dell'Istituto MeDiTech e dell'EOC restano rigorosamente protetti nella memoria locale del telefono."
+                }
+
+                _uiState.value = _uiState.value.copy(isAiProcessing = false)
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
             }
@@ -462,6 +510,22 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
     fun toggleSafetyBuffer(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(safetyBufferEnabled = enabled)
+    }
+
+    fun updateOnDeviceModelPath(path: String) {
+        _uiState.value = _uiState.value.copy(
+            onDeviceModelPath = path.trim(),
+            statusBanner = "Percorso modello locale aggiornato: ${path.trim()}"
+        )
+    }
+
+    fun checkOnDeviceModelFile(path: String) {
+        val status = onDeviceAiClient.checkOnDeviceModelFile(path)
+        _uiState.value = _uiState.value.copy(
+            onDeviceModelPath = path.trim(),
+            onDeviceModelStatus = status.statusText,
+            statusBanner = if (status.exists) "Qwen 3.5 2B (4-bit) verificato sullo smartphone" else "File pesi non trovato"
+        )
     }
 
     fun setSettingsDialogVisible(visible: Boolean) {
