@@ -2,8 +2,8 @@
   "latestVersionCode": 8,
   "latestVersionName": "1.4.1",
   "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.1/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Rivoluzione UI/UX Apple HIG & Stitch Design**: redesign completo di ogni schermata clinica, tipografia ad altissimo contrasto ed estetica svizzera MeDiTech\n• **Rendering Gerarchico Markdown**: architettura a blocchi con titoli zaffiro, elenchi a punti indentati e callout box per avvisi\n• **Generative UI & Card Interattive**: card sotto le bolle per verifica appuntamenti e 1-tap Google Meet / Maps\n• **Bento Grid Ricerca SUPSI**: telemetria attiva con battito cardiaco ECG animato\n• **Aggiornamenti OTA 1-Tap Resilienti**: download con gestione automatica permessi di sistema, verifica SHA-256 e installazione immediata",
+  "releaseNotes": "• **Messaggi di Sistema Concisi & Puliti**: eliminati i muri di testo confusi, introduzioni prolisse e boilerplate; ora le risposte dell'assistente sono asciutte, immediate e leggibili (stile Perito Mobile)\n• **Slash Commands Rapidi**: supporto per comandi immediati `/agenda`, `/fissa`, `/email`, `/progetti`, `/aggiorna` e `/aiuto`\n• **Briefing Email Sintetico**: resoconto compatto delle comunicazioni VIP senza sovraccaricare la schermata chat\n• **Generative UI & Card Interattive**: card sotto le bolle per verifica appuntamenti e 1-tap Google Meet / Maps\n• **Aggiornamenti OTA 1-Tap Resilienti**: download con gestione permessi sconosciuti, verifica crittografica SHA-256 e installazione fluida",
   "mandatory": false,
-  "publishedAt": "2026-10-27T11:40:00Z",
-  "sha256": "bc56a8532f460b46313a58f76283a3a5a5324ff54ed2558bd83d15353b5e8183"
+  "publishedAt": "2026-10-27T11:55:00Z",
+  "sha256": "160f1268fa8bee916c4ff7d3209f30b116542314cdfa2fd6506925a73656d5d2"
 }

@@ -201,10 +201,11 @@ fun MeditechAiChatScreen(
         // Striscia Orizzontale Suggerimenti Rapidi MeDiTech (sopra la barra di digitazione)
         val suggestions = remember {
             listOf(
-                "📅 Fissa incontro con Stéphane Meystre",
-                "📬 Sintetizza email non lette",
-                "🧬 Stato progetti ricerca P4",
-                "🩺 Verifica impegni di oggi"
+                "📅 /agenda",
+                "📝 /fissa incontro con Stéphane Meystre",
+                "📬 /email",
+                "🔬 /progetti",
+                "🔄 /aggiorna"
             )
         }
 

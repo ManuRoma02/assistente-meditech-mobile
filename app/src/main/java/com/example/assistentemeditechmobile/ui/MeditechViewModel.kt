@@ -183,20 +183,19 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
     fun generateEmailExecutiveBriefing(emailsList: List<EmailItem> = _uiState.value.emails): String {
         val count = emailsList.size
-        val vipCount = emailsList.count { it.isVip }
+        val vips = emailsList.filter { it.isVip }
 
         return buildString {
-            append("• **Resoconto Email Cliniche Ricevute (Agente Locale Qwen 3.5)**\n\n")
-            append("Analizzate in locale **$count email** ($vipCount prioritarie VIP EOC/SUPSI):\n\n")
-            emailsList.take(3).forEach { mail ->
+            appendLine("📬 **Briefing Email Cliniche ($count messaggi, ${vips.size} prioritari VIP):**")
+            appendLine()
+            val targetList = if (vips.isNotEmpty()) vips.take(3) else emailsList.take(3)
+            for (mail in targetList) {
                 val senderClean = mail.sender.substringBefore('<').trim()
-                val vipBadge = if (mail.isVip) " [VIP EOC/SUPSI]" else ""
                 val meetingBadge = if (mail.hasAppointmentProposal) " • *Richiesta Incontro*" else ""
-                append("• **$senderClean**$vipBadge$meetingBadge\n")
-                append("  **Oggetto:** ${mail.subject}\n")
-                append("  **Sintesi:** ${mail.summary}\n\n")
+                appendLine("• **$senderClean**: ${mail.subject}$meetingBadge")
             }
-            append("• *Azioni predisposte:* Bozze di risposta pronte e slot verificati rispetto all'agenda clinica.")
+            appendLine()
+            append("💡 *Tocca 'Email' nella barra in basso per leggere i testi o inviare risposte 1-Tap.*")
         }
     }
 
@@ -210,7 +209,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             )
             _uiState.value = _uiState.value.copy(
                 chatMessages = _uiState.value.chatMessages + msg,
-                statusBanner = "Resoconto email generato dall'agente locale"
+                statusBanner = "Resoconto email cliniche aggiornato"
             )
         }
     }
@@ -223,14 +222,14 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val projects = projectRepository.getProjects()
             val events = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
 
-            val briefingText = generateEmailExecutiveBriefing(emails)
-
             val welcomeMsg = ChatMessage(
                 id = "init-msg",
                 role = "assistant",
-                text = "Buongiorno! Sono il tuo assistente clinico **MeDiTech AI (SUPSI)** alimentato dal modello on-device **Qwen 3.5 HighIQ**.\n\n" +
-                        briefingText + "\n\n" +
-                        "• Per fissare un impegno: *'Fissa meeting di 30 minuti domani alle 14 con Stéphane Meystre'*."
+                text = "🏥 **MeDiTech AI — SUPSI & EOC (100% On-Device)**\n\n" +
+                    "• 📅 **Agenda Clinica** — Pianifica visite e meeting con rilevamento conflitti\n" +
+                    "• 📬 **Email Hub** — Monitoraggio comunicazioni VIP Prof. Meystre e bozze 1-tap\n" +
+                    "• 🔬 **Ricerca & Dossier** — Telemetria progetti clinici e studi attivi\n" +
+                    "• 🎙️ **Comandi Vocali** — Dettatura rapida impegni e consultazione agenda"
             )
 
             _uiState.value = _uiState.value.copy(
@@ -264,18 +263,10 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             refreshEvents()
             _uiState.value = _uiState.value.copy(isAiProcessing = false)
 
-            val confirmationText = buildString {
-                append("• **Appuntamento Confermato in Agenda!**\n\n")
-                append("• **${created.title}**\n")
-                append("• Data: ${created.startIso.take(10)} dalle ${created.startIso.takeLast(8).take(5)} alle ${created.endIso.takeLast(8).take(5)}\n")
-                append("• Sede: ${created.location}\n")
-                if (created.contact.isNotBlank()) append("• Contatto: ${created.contact}\n")
-                if (created.isOnline && created.hangoutLink.isNotBlank()) {
-                    append("• Link Videochiamata: ${created.hangoutLink}\n")
-                }
-                if (created.hasConflict) {
-                    append("\n[Attenzione Conflitto]: ${created.conflictDetails}")
-                }
+            val confirmationText = if (created.hasConflict) {
+                "⚠️ **Appuntamento salvato con sovrapposizione d'orario.**\nVerifica il conflitto rilevato nella scheda sottostante."
+            } else {
+                "✅ **Appuntamento confermato in agenda clinica.**"
             }
 
             val assistantMsg = ChatMessage(
@@ -299,7 +290,10 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val welcomeMsg = ChatMessage(
                 id = UUID.randomUUID().toString().take(8),
                 role = "assistant",
-                text = "• **Cronologia ripulita con successo.**\n\nPronto per nuove richieste cliniche, pianificazione meeting e consultazione agenda."
+                text = "🧹 **Cronologia chat reimpostata.**\n\n" +
+                    "• 📅 Scrivi *'/agenda'* o *'impegni di oggi'* per consultare le visite\n" +
+                    "• 📬 Scrivi *'/email'* o *'briefing'* per il riassunto comunicazioni VIP\n" +
+                    "• 🔬 Scrivi *'/progetti'* per lo stato delle ricerche MeDiTech"
             )
             _uiState.value = _uiState.value.copy(
                 chatMessages = listOf(welcomeMsg),
@@ -401,18 +395,111 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         )
         _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + userMsg)
 
-        val lower = text.lowercase()
+        val clean = text.trim()
+        val lower = clean.lowercase()
+
+        // 0. ROUTING DETERMINISTICO COMANDI SLASH (/agenda, /fissa, /email, /progetti, /aggiorna, /aiuto)
+        if (clean.startsWith("/")) {
+            when {
+                lower == "/oggi" || lower == "/agenda" || lower.startsWith("/agenda ") -> {
+                    viewModelScope.launch {
+                        val evs = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
+                        val reply = if (evs.isEmpty()) {
+                            "📅 **Agenda di Oggi:** Nessun impegno clinico in programma."
+                        } else {
+                            buildString {
+                                appendLine("📅 **Agenda Clinica di Oggi (${evs.size} impegni):**")
+                                for (ev in evs) {
+                                    val startH = ev.startIso.drop(11).take(5)
+                                    val endH = ev.endIso.drop(11).take(5)
+                                    appendLine("• **$startH - $endH** | **${ev.title}** (${ev.location})")
+                                }
+                            }.trimEnd()
+                        }
+                        val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
+                        _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    }
+                    return
+                }
+                lower == "/fissa" || lower.startsWith("/fissa ") -> {
+                    val instruction = clean.removePrefix("/fissa").trim()
+                    if (instruction.isBlank()) {
+                        val assistantMsg = ChatMessage(
+                            id = UUID.randomUUID().toString().take(8),
+                            role = "assistant",
+                            text = "📅 **Fissa un nuovo incontro MeDiTech**\n\nScrivi ad esempio:\n• */fissa domani alle 14 con Stéphane Meystre di 30 min*\n• */fissa venerdì alle 10 meeting clinico con Dr.ssa Fontana*"
+                        )
+                        _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    } else {
+                        createAppointmentFromInstruction(instruction)
+                    }
+                    return
+                }
+                lower == "/email" || lower == "/briefing" || lower == "/posta" -> {
+                    viewModelScope.launch {
+                        val briefing = generateEmailExecutiveBriefing()
+                        val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = briefing)
+                        _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    }
+                    return
+                }
+                lower == "/progetti" || lower == "/ricerca" || lower == "/dossier" -> {
+                    viewModelScope.launch {
+                        val projects = projectRepository.getProjects()
+                        val reply = buildString {
+                            appendLine("🔬 **Progetti di Ricerca MeDiTech (${projects.size} attivi):**")
+                            for (p in projects.take(4)) {
+                                appendLine("• **${p.codice}** — **${p.titolo}** (${p.stato})")
+                                appendLine("  Responsabile: ${p.responsabileScientifico} • Partner: ${p.istituto}")
+                            }
+                        }.trimEnd()
+                        val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
+                        _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    }
+                    return
+                }
+                lower == "/aggiorna" || lower == "/update" -> {
+                    val assistantMsg = ChatMessage(
+                        id = UUID.randomUUID().toString().take(8),
+                        role = "assistant",
+                        text = "🔄 **Controllo Aggiornamenti In-App...**\nVerifico se è disponibile una nuova versione per l'app installata."
+                    )
+                    _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    checkForAppUpdate(force = true)
+                    return
+                }
+                lower == "/aiuto" || lower == "/help" || lower == "/?" -> {
+                    val helpText = """⚡ **Guida ai Comandi Rapidi (Slash Commands)**
+
+• 📅 **/agenda**: Mostra gli impegni clinici della giornata
+• 📝 **/fissa [dettagli]**: Fissa una visita o riunione (es: `/fissa domani alle 15 con Prof. Meystre`)
+• 📬 **/email**: Sintesi concisa delle comunicazioni prioritarie VIP
+• 🔬 **/progetti**: Stato e telemetria delle ricerche attive SUPSI & EOC
+• 🔄 **/aggiorna**: Verifica e installa aggiornamenti OTA da Git"""
+                    val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = helpText)
+                    _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    return
+                }
+            }
+        }
+
+        // 1. ROUTING IN LINGUAGGIO NATURALE
         if (lower.startsWith("fissa") || lower.contains("appuntamento") || lower.contains("riunione") || lower.contains("call") || lower.contains("meeting")) {
             createAppointmentFromInstruction(text)
-        } else if (lower.contains("agenda") || lower.contains("cosa ho") || lower.contains("impegni")) {
+        } else if (lower.contains("agenda") || lower.contains("cosa ho") || lower.contains("impegni") || lower == "oggi") {
             viewModelScope.launch {
                 val evs = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
                 val reply = if (evs.isEmpty()) {
-                    "Nessun appuntamento in programma per questa data. Agenda libera."
+                    "📅 **Agenda di Oggi:** Nessun impegno clinico in programma."
                 } else {
-                    "**Impegni registrati per la giornata:**\n\n" + evs.joinToString("\n\n") {
-                        "• **${it.startIso.takeLast(8).take(5)} - ${it.endIso.takeLast(8).take(5)}**: ${it.title} (${it.durationMinutes} min)\n  Sede: ${it.location}"
-                    }
+                    buildString {
+                        appendLine("📅 **Agenda Clinica di Oggi (${evs.size} impegni):**")
+                        for (ev in evs) {
+                            val startH = ev.startIso.drop(11).take(5)
+                            val endH = ev.endIso.drop(11).take(5)
+                            appendLine("• **$startH - $endH** | **${ev.title}** (${ev.location})")
+                        }
+                    }.trimEnd()
                 }
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
@@ -421,6 +508,19 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             viewModelScope.launch {
                 val briefing = generateEmailExecutiveBriefing()
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = briefing)
+                _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+            }
+        } else if (lower.contains("progett") || lower.contains("ricerca") || lower.contains("dossier") || lower.contains("studi")) {
+            viewModelScope.launch {
+                val projects = projectRepository.getProjects()
+                val reply = buildString {
+                    appendLine("🔬 **Progetti di Ricerca MeDiTech (${projects.size} attivi):**")
+                    for (p in projects.take(4)) {
+                        appendLine("• **${p.codice}** — **${p.titolo}** (${p.stato})")
+                        appendLine("  Responsabile: ${p.responsabileScientifico} • Partner: ${p.istituto}")
+                    }
+                }.trimEnd()
+                val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
             }
         } else {
@@ -450,8 +550,8 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 )
 
                 val reply = localResult.getOrElse {
-                    "Elaborazione eseguita con il modello locale **Qwen 3.5 2B (4-bit On-Device)** sullo smartphone.\n\n" +
-                    "Tutti i dati e i protocolli dell'Istituto MeDiTech e dell'EOC restano rigorosamente protetti nella memoria locale del telefono."
+                    "Sono a disposizione per supportarti nella gestione dell'agenda clinica, nella consultazione dei progetti MeDiTech e nelle comunicazioni con il Prof. Stéphane Meystre.\n\n" +
+                    "💡 *Digita /aiuto per consultare l'elenco dei comandi rapidi.*"
                 }
 
                 _uiState.value = _uiState.value.copy(isAiProcessing = false)
@@ -483,7 +583,7 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
                 val isNewer = manifest != null && manifest.latestVersionCode > result.currentVersionCode
                 val bannerText = if (isNewer) {
-                    "Nuovo aggiornamento v${manifest?.latestVersionName} disponibile!"
+                    "Nuovo aggiornamento v${manifest.latestVersionName} disponibile!"
                 } else {
                     "Versione v${manifest?.latestVersionName ?: result.currentVersionName} pronta (Reinstallazione/Aggiornamento)"
                 }

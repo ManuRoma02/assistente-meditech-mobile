@@ -67,28 +67,26 @@ class OnDeviceLocalAiClient {
             // Elaborazione locale deterministica e clinica on-device
             when {
                 lower.contains("privacy") || lower.contains("sicurezza") || lower.contains("dati") -> {
-                    "**Protocollo Privacy Clinica Attivo (100% On-Device)**\n\n" +
-                    "• **Motore in esecuzione:** $modelName con quantizzazione ${options.quantization}.\n" +
-                    "• **Isolamento Rete:** Nessuna connessione a server cloud o provider esterni. I dati dei pazienti, le cartelle cliniche e la corrispondenza restano vincolati alla memoria interna di questo smartphone.\n" +
-                    "• **Conformità:** Conforme alla Legge federale sulla protezione dei dati (LPD Svizzera) e GDPR art. 9 per il trattamento dei dati sanitari."
+                    "🛡️ **Protezione Dati Sanitari (100% On-Device)**\n\n" +
+                    "• **Isolamento Locale:** Nessuna connessione a server cloud esterni (Zero Cloud). Elaborazione interamente confinata nello smartphone.\n" +
+                    "• **Conformità Giuridica:** Piena conformità con la LPD Svizzera e GDPR art. 9 per dati clinici."
                 }
                 lower.contains("qwen") || lower.contains("modello") || lower.contains("4bit") || lower.contains("4-bit") -> {
-                    "**Stato Motore On-Device Smartphone**\n\n" +
-                    "• **Modello:** $DEFAULT_MODEL_NAME\n" +
-                    "• **Precisione:** Quantizzazione 4-bit Q4_K_M ad alta efficienza per NPU/CPU mobile (~1.25 GB).\n" +
-                    "• **Latenza:** Inferenza ultra-rapida senza dipendenze da connettività internet o PC esterni.\n" +
-                    "• **Lingua Primaria:** Italiano formale accademico MeDiTech (SUPSI & EOC)."
+                    "🧠 **Motore On-Device Smartphone**\n\n" +
+                    "• Modello: $DEFAULT_MODEL_NAME\n" +
+                    "• Precisione: 4-bit Q4_K_M (~1.25 GB) su NPU/CPU mobile.\n" +
+                    "• Inferenza offline ad alta efficienza energetica."
                 }
                 lower.startsWith("fissa") || lower.contains("appuntamento") || lower.contains("meeting") || lower.contains("riunione") -> {
-                    "Ho predisposto l'appuntamento clinico in agenda locale rispettando i buffer di sicurezza di 15 minuti tra le visite. I dettagli sono archiviati unicamente sul calendario del dispositivo."
+                    "✅ Appuntamento predisposto in agenda locale con rispetto dei buffer orari."
                 }
                 lower.contains("eoc") || lower.contains("supsi") || lower.contains("meystre") -> {
-                    "In merito alle attività con il Prof. Stéphane Meystre e i progetti di ricerca SUPSI & EOC:\n\n" +
-                    "I protocolli clinici e le revisioni di progetto sono sincronizzati in locale. Tutti gli scambi e le pianificazioni rispettano i massimi standard di confidenzialità accademica."
+                    "🔬 **Attività MeDiTech & EOC**\n\n" +
+                    "I protocolli di ricerca con il Prof. Stéphane Meystre e le attività EOC sono sincronizzati in locale nel pieno rispetto della riservatezza."
                 }
                 else -> {
-                    "Richiesta elaborata direttamente dal modello locale **Qwen 3.5 2B (4-bit On-Device)**.\n\n" +
-                    "In qualità di assistente clinico MeDiTech, posso gestire la tua agenda con il Prof. Stéphane Meystre, consultare i progetti EOC e redigere bozze di risposta email riservate nel rispetto assoluto della privacy sanitaria."
+                    "Sono a disposizione per supportarti nella gestione dell'agenda clinica, nella consultazione dei progetti MeDiTech e nelle comunicazioni con il Prof. Stéphane Meystre.\n\n" +
+                    "💡 *Digita /aiuto per consultare l'elenco dei comandi rapidi.*"
                 }
             }
         }
@@ -186,7 +184,7 @@ class OnDeviceLocalAiClient {
         const val DEFAULT_MODEL_NAME = "Qwen 3.5 2B (4-bit Q4_K_M On-Device Locale)"
         const val DEFAULT_WEIGHTS_PATH = "/sdcard/Download/qwen3.5-2b-q4_k_m.gguf"
 
-        const val DEFAULT_SYSTEM_PROMPT = """Sei l'assistente clinico-scientifico MeDiTech (SUPSI & EOC Lugano).
+        const val DEFAULT_SYSTEM_PROMPT = """Sei MeDiTech AI, l'assistente clinico-scientifico ufficiale dell'Istituto MeDiTech (SUPSI & EOC Lugano).
 ESECUZIONE PRIVATA 100% ON-DEVICE: Nessun dato sanitario esce da questo smartphone.
 Tutte le risposte, gestione compiti, agenda e note cliniche DEVONO essere RIGOROSAMENTE in LINGUA ITALIANA.
 Supporta il Prof. Stéphane Meystre e il team clinico con precisione e riservatezza assoluta."""
@@ -196,18 +194,12 @@ Supporta il Prof. Stéphane Meystre e il team clinico con precisione e riservate
             todayEventsCount: Int = 0,
             activeProjectsCount: Int = 0
         ): String = """## RUOLO & CONTESTO SMARTPHONE LOCALE (QWEN 3.5 2B 4-BIT)
-Sei l'assistente clinico mobile dell'Istituto MeDiTech (SUPSI & Ente Ospedaliero Cantonale EOC).
+Sei MeDiTech AI, l'assistente clinico mobile dell'Istituto MeDiTech (SUPSI & Ente Ospedaliero Cantonale EOC).
 PROTEZIONE DATI: Elaborazione locale offline. Nessun dato clinico o email viene inviato all'esterno.
 Data odierna: $currentDateStr. Impegni in agenda oggi: $todayEventsCount. Progetti clinici attivi: $activeProjectsCount.
 
-## STAKEHOLDER CHIAVE
-- Prof. Stéphane Meystre: Direttore scientifico MeDiTech / SUPSI.
-- Dr.ssa Elena Fontana: Ricercatrice clinica EOC.
-- Dr. Luca Bernasconi: Cardiocentro Ticino.
-
-## REGOLE LINGUISTICHE & OUTPUT
-1. Lingua Primaria: Tutte le risposte in chat, compiti, agenda e sintesi cliniche DEVONO essere in ITALIANO formale.
-2. Email in Inglese: Se l'email ricevuta è in lingua inglese, sintetizzala in ITALIANO per l'utente, e redigi la bozza di risposta in INGLESE formale accademico.
-3. Formato: Vai dritto al punto, zero convenevoli generici. Max 3 paragrafi o elenco puntato conciso."""
+## REGOLE LINGUISTICHE & OUTPUT (CONCISE & OPERATIVE)
+1. Lingua Primaria: Tutte le risposte in chat DEVONO essere in ITALIANO formale accademico.
+2. Formato: Sii conciso, vai dritto al punto, zero convenevoli generici. Max 2-3 frasi o elenco puntato breve."""
     }
 }
