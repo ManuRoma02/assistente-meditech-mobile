@@ -550,6 +550,54 @@ fun MeditechSettingsSheet(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Configura Parametri Posta (IMAP / SMTP)", style = MaterialTheme.typography.labelMedium)
                     }
+
+                    // Card Notifiche Push & Recap AI
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MeditechCyanSoft.copy(alpha = 0.5f),
+                        border = BorderStroke(0.8.dp, MeditechCyanPrimary.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = MeditechCyanPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Notifiche con Recap AI Attive",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MeditechCyanDark
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "All'arrivo di ogni email clinica riceverai una notifica animata di sistema con la sintesi automatica on-device e bottoni 1-tap per accettare incontri.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
+                                color = MeditechTextSecondary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val testNotifInteraction = remember { MutableInteractionSource() }
+                            Button(
+                                onClick = {
+                                    viewModel.triggerTestEmailNotification()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .emilPressScale(testNotifInteraction)
+                            ) {
+                                Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Invia Notifica Recap di Prova", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
 

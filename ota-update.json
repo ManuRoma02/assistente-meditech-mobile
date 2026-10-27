@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 12,
-  "latestVersionName": "1.4.5",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.5/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Gestione Tastiera & IME Padding Stile Perito**: il campo di scrittura si eleva istantaneamente sopra la tastiera software senza rimanerne coperto\n• **Scorrimento Intelligente Chat**: la cronologia messaggi effettua un auto-scroll fluido verso l'ultimo elemento non appena si apre la tastiera\n• **Architettura Edge-to-Edge Reattiva**: insets unificati su tutta l'applicazione con eliminazione dei glitch visivi della navigation bar sotto la tastiera",
+  "latestVersionCode": 13,
+  "latestVersionName": "1.4.6",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.6/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Notifiche Sistema con Recap AI**: all'arrivo di ogni email ricevi una notifica moderna ad alta priorità con riassunto IA generativo on-device (Zero Cloud)\n• **Azioni 1-Tap nella Notifica**: leggi il recap, accetta e inserisci direttamente gli incontri nell'Agenda Clinica o segna l'email come letta senza aprire l'app\n• **Banner Fluttuante In-App Animato**: scheda a comparsa con fisica a molla Emil Kowalski, pillola pulsante e lettura immediata quando l'app è aperta\n• **Supporto Android 13+ (POST_NOTIFICATIONS)**: gestione automatica dei permessi e canale dedicato con vibrazione soft e led ciano",
   "mandatory": false,
-  "publishedAt": "2026-10-27T17:55:00Z",
-  "sha256": "509a07c671472c76aee0e23b81d8138d365dfe0a4a263e14110f1696c95cacef"
+  "publishedAt": "2026-10-27T18:10:00Z",
+  "sha256": "235c952777f4c6e909ba93fa04c6a9599729a4e7979e60d25ec84c2857423f34"
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistentemeditechmobile.domain.MeditechTab
@@ -294,7 +295,13 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                 statusBanner = uiState.statusBanner,
                 onDismissBanner = { viewModel.dismissBanner() },
                 onOpenSettings = { viewModel.setSettingsDialogVisible(true) },
-                onClearChat = { showClearConfirmDialog = true }
+                onClearChat = { showClearConfirmDialog = true },
+                incomingEmailAlert = uiState.incomingEmailAlert,
+                onOpenEmailAlert = { email ->
+                    viewModel.openEmailDetail(email)
+                    coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                },
+                onDismissEmailAlert = { viewModel.dismissIncomingEmailAlert() }
             )
         },
         containerColor = MeditechBg
@@ -379,7 +386,10 @@ fun MeditechHeader(
     statusBanner: String?,
     onDismissBanner: () -> Unit,
     onOpenSettings: () -> Unit,
-    onClearChat: (() -> Unit)? = null
+    onClearChat: (() -> Unit)? = null,
+    incomingEmailAlert: com.example.assistentemeditechmobile.domain.EmailItem? = null,
+    onOpenEmailAlert: ((com.example.assistentemeditechmobile.domain.EmailItem) -> Unit)? = null,
+    onDismissEmailAlert: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -499,6 +509,123 @@ fun MeditechHeader(
                         tint = MeditechCyanPrimary,
                         modifier = Modifier.size(18.dp)
                     )
+                }
+            }
+        }
+
+        // Modern In-App Animated Email Notification Card (Emil Kowalski Spring Physics)
+        AnimatedVisibility(
+            visible = incomingEmailAlert != null,
+            enter = slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+            ) + fadeIn(tween(260)),
+            exit = slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec = tween(220)
+            ) + fadeOut(tween(200))
+        ) {
+            incomingEmailAlert?.let { email ->
+                LaunchedEffect(email.id) {
+                    kotlinx.coroutines.delay(7500)
+                    onDismissEmailAlert?.invoke()
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MeditechSurface,
+                    border = BorderStroke(1.2.dp, MeditechCyanPrimary),
+                    shadowElevation = 8.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MeditechCyanSoft,
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Mail,
+                                            contentDescription = null,
+                                            tint = MeditechCyanPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = email.sender.substringBefore('<').trim(),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MeditechTextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "Nuova Email • Recap AI On-Device",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = MeditechCyanDark
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { onDismissEmailAlert?.invoke() },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Chiudi",
+                                    tint = MeditechTextTertiary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = email.summary.ifBlank { email.bodySnippet },
+                            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 17.sp),
+                            color = MeditechTextSecondary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = {
+                                    onDismissEmailAlert?.invoke()
+                                    onOpenEmailAlert?.invoke(email)
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Leggi Recap AI", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
         }

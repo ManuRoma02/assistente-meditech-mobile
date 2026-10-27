@@ -16,7 +16,7 @@ import java.util.UUID
 
 class EmailRepository(
     private val context: Context,
-    private val vipRepository: VipRepository
+    private val vipRepository: VipRepository = VipRepository(context)
 ) {
 
     private val json = Json {

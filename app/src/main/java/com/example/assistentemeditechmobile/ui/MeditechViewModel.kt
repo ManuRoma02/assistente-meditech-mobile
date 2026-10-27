@@ -62,7 +62,8 @@ data class MeditechUiState(
     val isClearingChat: Boolean = false,
     val deletingEventIds: Set<String> = emptySet(),
     val sentEmailIds: Set<String> = emptySet(),
-    val easterEggMessage: String? = null
+    val easterEggMessage: String? = null,
+    val incomingEmailAlert: EmailItem? = null
 )
 
 class MeditechViewModel(application: Application) : AndroidViewModel(application) {
@@ -168,17 +169,40 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         return emailRepository.testConnection(config)
     }
 
+    fun openEmailById(emailId: String) {
+        viewModelScope.launch {
+            val email = emailRepository.getEmails().firstOrNull { it.id == emailId }
+            if (email != null) {
+                openEmailDetail(email)
+                selectTab(MeditechTab.EMAIL_HUB)
+            }
+        }
+    }
+
+    fun dismissIncomingEmailAlert() {
+        _uiState.value = _uiState.value.copy(incomingEmailAlert = null)
+    }
+
     fun simulateReceiveIncomingEmail() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAiProcessing = true)
             val newMail = emailRepository.simulateIncomingEmail()
             val updatedEmails = emailRepository.getEmails()
+
+            // Genera Notifica Android ad Alta Priorità con Sintesi On-Device
+            com.example.assistentemeditechmobile.data.notification.EmailNotificationManager.showEmailNotification(context, newMail)
+
             _uiState.value = _uiState.value.copy(
                 isAiProcessing = false,
                 emails = updatedEmails,
-                statusBanner = "Nuova email ricevuta da ${newMail.sender.substringBefore('<').trim()}: Recap AI generato!"
+                incomingEmailAlert = newMail,
+                statusBanner = "Nuova email ricevuta da ${newMail.sender.substringBefore('<').trim()}: Notifica con Recap inviata!"
             )
         }
+    }
+
+    fun triggerTestEmailNotification() {
+        simulateReceiveIncomingEmail()
     }
 
     fun addMeetingFromEmail(title: String, slotStr: String, durationMinutes: Int, contact: String) {
