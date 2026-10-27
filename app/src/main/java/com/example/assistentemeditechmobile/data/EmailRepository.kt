@@ -98,8 +98,8 @@ class EmailRepository(
 
     suspend fun simulateIncomingEmail(): EmailItem = withContext(Dispatchers.IO) {
         val vips = runCatching { vipRepository.getVips() }.getOrDefault(emptyList())
-        val sender = "Dr. Luca Bernasconi <luca.bernasconi@cardiocentro.org>"
-        val subject = "Richiesta Urgente: Valutazione Tracciati ECG con Algoritmo AI"
+        val sender = "Segreteria MeDiTech SUPSI <segreteria.meditech@supsi.ch>"
+        val subject = "Coordinamento Progetti Ricerca DTI MeDiTech"
         val isSenderVip = com.example.assistentemeditechmobile.domain.VipMatcher.isVip(sender, subject, vips)
 
         mutex.withLock {
@@ -111,16 +111,16 @@ class EmailRepository(
                 recipient = cachedConfig?.emailAddress ?: "utente@supsi.ch",
                 subject = subject,
                 dateStr = nowStr,
-                bodySnippet = "Gentile collega, abbiamo un lotto di tracciati complessi da validare con il modello neurale. Riusciamo a fare un punto rapido oggi alle 16:30 o domani alle 09:30? Ti allego l'estratto anonimizzato.",
-                summary = "Il Dr. Luca Bernasconi (Cardiocentro) richiede una valutazione urgente di tracciati ECG e propone un incontro oggi alle 16:30 o domani alle 09:30.",
+                bodySnippet = "Gentile collega, ti inoltriamo l'ordine del giorno per il coordinamento dei progetti di ricerca clinica ed intelligenza artificiale. È previsto un allineamento breve oggi alle 16:30.",
+                summary = "La Segreteria MeDiTech SUPSI propone un punto di allineamento sui progetti di ricerca oggi alle 16:30.",
                 language = "it",
                 isImportant = true,
                 isVip = isSenderVip,
                 hasAppointmentProposal = true,
                 suggestedSlot = "Oggi alle 16:30",
-                suggestedDurationMinutes = 45,
-                draftReply = "Gentile Dr. Bernasconi,\n\nho analizzato la richiesta: confermo la disponibilità per l'incontro di oggi alle ore 16:30. Ho inserito l'appuntamento in agenda con alert clinico attivo.\n\nA presto,\nAssistente MeDiTech",
-                attachments = listOf("Estratto_ECG_Cardiocentro_04.pdf"),
+                suggestedDurationMinutes = 30,
+                draftReply = "Gentile Segreteria MeDiTech,\n\nconfermo la disponibilità per l'incontro di coordinamento delle ore 16:30.\n\nCordiali saluti,\nAssistente MeDiTech",
+                attachments = listOf("Ordine_del_Giorno_MeDiTech.pdf"),
                 isRead = false,
                 timestampMillis = System.currentTimeMillis()
             )
@@ -194,11 +194,16 @@ class EmailRepository(
         val loaded = runCatching {
             json.decodeFromString<List<EmailItem>>(emailsFile.readText())
         }.getOrDefault(emptyList())
-        // Rimuove completamente tutte le email mock/inventate di seed precedenti
+        // Rimuove completamente tutte le email mock/inventate di seed o simulazioni pregresse
         val cleaned = loaded.filterNot { email ->
             email.id in listOf("em-1", "em-2", "em-3") ||
             email.id.startsWith("em-seed") ||
             email.accountName.equals("Lavoro", ignoreCase = true) ||
+            email.sender.contains("bernasconi", ignoreCase = true) ||
+            email.subject.contains("bernasconi", ignoreCase = true) ||
+            email.bodySnippet.contains("bernasconi", ignoreCase = true) ||
+            email.sender.contains("cardiocentro", ignoreCase = true) ||
+            email.subject.contains("Tracciati ECG", ignoreCase = true) ||
             (email.sender.contains("stephane.meystre@supsi.ch") && email.subject.contains("Allineamento su Progetto")) ||
             (email.sender.contains("elena.fontana@eoc.ch") && email.subject.contains("Feedback preliminare")) ||
             email.sender.contains("updates@ieee-org.org")

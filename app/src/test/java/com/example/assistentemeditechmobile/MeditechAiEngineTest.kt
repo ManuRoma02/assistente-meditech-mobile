@@ -79,10 +79,10 @@ class MeditechAiEngineTest {
 
     @Test
     fun testExtractsCustomContactName() = runTest {
-        val input = "fissa meeting con Marco Bernasconi domani alle 10:00"
+        val input = "fissa meeting con Marco Bianchi domani alle 10:00"
         val result = aiEngine.parseAppointmentInstruction(input)
 
-        assertEquals("Marco Bernasconi", result.contatto)
+        assertEquals("Marco Bianchi", result.contatto)
     }
 
     @Test

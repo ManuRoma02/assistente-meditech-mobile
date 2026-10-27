@@ -425,7 +425,18 @@ class CalendarRepository(
         val loaded = runCatching {
             json.decodeFromString<List<CalendarEventItem>>(eventsFile.readText())
         }.getOrDefault(emptyList())
-        cachedEvents = loaded
-        return loaded
+
+        // Bonifica automatica eventi mock pregressi
+        val cleaned = loaded.filterNot { ev ->
+            ev.title.contains("bernasconi", ignoreCase = true) ||
+            ev.contact.contains("bernasconi", ignoreCase = true) ||
+            ev.location.contains("cardiocentro", ignoreCase = true) ||
+            ev.title.contains("Tracciati ECG", ignoreCase = true)
+        }
+        if (cleaned.size != loaded.size) {
+            runCatching { eventsFile.writeText(json.encodeToString(cleaned)) }
+        }
+        cachedEvents = cleaned
+        return cleaned
     }
 }
