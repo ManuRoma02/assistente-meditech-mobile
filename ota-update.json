@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 14,
-  "latestVersionName": "1.4.7",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.7/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Menu a Comparsa Comandi Slash (/)**: digitando '/' si apre istantaneamente un popup fluttuante con tutte le opzioni, badge sintassi, emoji e descrizioni dettagliate\n• **Filtro Istantaneo Digitazione**: mentre scrivi dopo '/' (/f, /ag, /em, ecc.) l'elenco si riduce dinamicamente in tempo reale con animazione a molla fluida\n• **Azioni 1-Tap Dirette o con Template**: tocca un comando diretto (/agenda, /email, /aggiorna, /impostazioni) per eseguirlo subito o compila i parametri (/fissa) con cursore posizionato alla fine",
+  "latestVersionCode": 15,
+  "latestVersionName": "1.4.8",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.8/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Integrazione Dossier Ricerca MeDiTech**: accesso diretto ai progetti scientifici SUPSI ed EOC da foglio azioni rapide [+] e con comando `/progetti`\n• **Nuovi Comandi Slash**: aggiunti `/sposta` (riprogrammazione appuntamenti) e `/cancella` (eliminazione da agenda locale e calendario di sistema)\n• **Copywriting Action-First & Token-Saver**: risposte del motore IA concise con esito diretto sulla prima riga per efficienza clinica assoluta\n• **Indicatori Visivi Sovrapposizioni**: bordo rinforzato ambra e badge per conflitti di orario in agenda clinica\n• **Sincronizzazione Notifiche Efficiente**: raggruppamento notifiche di sistema e vincolo di risparmio energetico WorkManager",
   "mandatory": false,
-  "publishedAt": "2026-10-27T18:32:00Z",
-  "sha256": "6867658957a4c7758f5bfbbf580c5a607b31fa9b518c241a0061874380e86845"
+  "publishedAt": "2026-10-27T20:35:00Z",
+  "sha256": "4708612ae14752f63eceb0cd7012b9cf268df6ee96d29e71ef7fbd9836c0e738"
 }

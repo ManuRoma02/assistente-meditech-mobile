@@ -127,6 +127,7 @@ object EmailNotificationManager {
             .setColorized(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_EMAIL)
+            .setGroup("meditech_email_recap_group")
             .setAutoCancel(true)
             .setContentIntent(openPendingIntent)
             .addAction(

@@ -59,6 +59,7 @@ data class MeditechUiState(
     val autoCreateMeet: Boolean = true,
     val safetyBufferEnabled: Boolean = true,
     val showSettingsDialog: Boolean = false,
+    val showProjectsSheet: Boolean = false,
     val isClearingChat: Boolean = false,
     val deletingEventIds: Set<String> = emptySet(),
     val sentEmailIds: Set<String> = emptySet(),
@@ -115,6 +116,10 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
     fun setEmailConfigSheetVisible(visible: Boolean) {
         _uiState.value = _uiState.value.copy(showEmailConfigSheet = visible)
+    }
+
+    fun setProjectsSheetVisible(visible: Boolean) {
+        _uiState.update { it.copy(showProjectsSheet = visible) }
     }
 
     fun openEmailDetail(email: EmailItem) {
@@ -272,11 +277,13 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
             val welcomeMsg = ChatMessage(
                 id = "init-msg",
                 role = "assistant",
-                text = "🏥 **MeDiTech AI — SUPSI & EOC (100% On-Device)**\n\n" +
-                    "• 📅 **Agenda Clinica** — Pianifica visite e meeting con rilevamento conflitti\n" +
-                    "• 📬 **Email Hub** — Monitoraggio comunicazioni VIP Prof. Meystre e bozze 1-tap\n" +
-                    "• 🔬 **Ricerca & Dossier** — Telemetria progetti clinici e studi attivi\n" +
-                    "• 🎙️ **Comandi Vocali** — Dettatura rapida impegni e consultazione agenda"
+                text = "🏥 **Assistente Clinico MeDiTech attivo (100% On-Device).**\n\n" +
+                    "• 📅 **/agenda** — Impegni e visite cliniche di oggi\n" +
+                    "• 📝 **/fissa** — Pianifica incontro con controllo conflitti\n" +
+                    "• 🔄 **/sposta** o **/cancella** — Gestione rapida appuntamenti\n" +
+                    "• 📬 **/email** — Sintesi comunicazioni VIP Prof. Meystre\n" +
+                    "• 🔬 **/progetti** — Schede e telemetria dossier di ricerca\n" +
+                    "• 💡 Digita **/** per l'elenco comandi con sintesi rapida"
             )
 
             _uiState.value = _uiState.value.copy(
@@ -369,6 +376,79 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                     deletingEventIds = _uiState.value.deletingEventIds - eventId
                 )
             }
+        }
+    }
+
+    fun rescheduleAppointmentFromInstruction(instruction: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isAiProcessing = true)
+            val parsed = aiEngine.parseAppointmentInstruction(instruction)
+            val currentEvents = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
+            val lowerInst = instruction.lowercase()
+            val target = currentEvents.firstOrNull { ev ->
+                lowerInst.contains(ev.title.lowercase()) || (ev.contact.isNotBlank() && lowerInst.contains(ev.contact.lowercase().substringBefore(" ")))
+            } ?: currentEvents.firstOrNull()
+
+            if (target != null && parsed.data_inizio_iso != null) {
+                val updated = calendarRepository.rescheduleEvent(
+                    eventId = target.id,
+                    newStartIso = parsed.data_inizio_iso,
+                    newDurationMinutes = parsed.durata_minuti
+                )
+                refreshEvents()
+                _uiState.value = _uiState.value.copy(isAiProcessing = false)
+                val newTime = parsed.data_inizio_iso.drop(11).take(5)
+                val assistantMsg = ChatMessage(
+                    id = UUID.randomUUID().toString().take(8),
+                    role = "assistant",
+                    text = "🔄 **Appuntamento riprogrammato:** '${target.title}' spostato alle $newTime.",
+                    appointmentProposal = parsed,
+                    createdEvent = updated ?: target
+                )
+                _uiState.value = _uiState.value.copy(
+                    chatMessages = _uiState.value.chatMessages + assistantMsg,
+                    statusBanner = "Appuntamento '${target.title}' spostato alle $newTime"
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(isAiProcessing = false)
+                val assistantMsg = ChatMessage(
+                    id = UUID.randomUUID().toString().take(8),
+                    role = "assistant",
+                    text = "⚠️ **Nessun appuntamento trovato da riprogrammare.** Digita /agenda per verificare le visite attive."
+                )
+                _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+            }
+        }
+    }
+
+    fun deleteOrCancelAppointmentFromQuery(query: String) {
+        viewModelScope.launch {
+            val evs = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
+            if (evs.isEmpty()) {
+                val assistantMsg = ChatMessage(
+                    id = UUID.randomUUID().toString().take(8),
+                    role = "assistant",
+                    text = "ℹ️ **Nessun appuntamento da cancellare nella data selezionata.**"
+                )
+                _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                return@launch
+            }
+            val target = if (query.isBlank()) {
+                evs.first()
+            } else {
+                evs.firstOrNull {
+                    it.title.contains(query, ignoreCase = true) ||
+                        it.contact.contains(query, ignoreCase = true) ||
+                        it.location.contains(query, ignoreCase = true)
+                } ?: evs.first()
+            }
+            cancelAppointment(target.id)
+            val assistantMsg = ChatMessage(
+                id = UUID.randomUUID().toString().take(8),
+                role = "assistant",
+                text = "🗑️ **Appuntamento annullato:** '${target.title}' rimosso dall'agenda clinica."
+            )
+            _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
         }
     }
 
@@ -482,6 +562,25 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                     }
                     return
                 }
+                lower == "/sposta" || lower.startsWith("/sposta ") || lower == "/rinvia" || lower.startsWith("/rinvia ") -> {
+                    val instruction = clean.replaceFirst(Regex("^/(?:sposta|rinvia)\\s*", RegexOption.IGNORE_CASE), "").trim()
+                    if (instruction.isBlank()) {
+                        val assistantMsg = ChatMessage(
+                            id = UUID.randomUUID().toString().take(8),
+                            role = "assistant",
+                            text = "🔄 **Sposta Appuntamento:** Specifica orario o giorno.\nEs: */sposta alle 16* oppure */sposta visita domani alle 15*"
+                        )
+                        _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
+                    } else {
+                        rescheduleAppointmentFromInstruction(instruction)
+                    }
+                    return
+                }
+                lower == "/cancella" || lower.startsWith("/cancella ") || lower == "/elimina" || lower.startsWith("/elimina ") -> {
+                    val query = clean.replaceFirst(Regex("^/(?:cancella|elimina)\\s*", RegexOption.IGNORE_CASE), "").trim()
+                    deleteOrCancelAppointmentFromQuery(query)
+                    return
+                }
                 lower == "/email" || lower == "/briefing" || lower == "/posta" -> {
                     viewModelScope.launch {
                         val briefing = generateEmailExecutiveBriefing()
@@ -491,13 +590,13 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                     return
                 }
                 lower == "/progetti" || lower == "/ricerca" || lower == "/dossier" -> {
+                    setProjectsSheetVisible(true)
                     viewModelScope.launch {
                         val projects = projectRepository.getProjects()
                         val reply = buildString {
-                            appendLine("🔬 **Progetti di Ricerca MeDiTech (${projects.size} attivi):**")
-                            for (p in projects.take(4)) {
+                            appendLine("🔬 **Dossier Ricerca MeDiTech (${projects.size} attivi):**")
+                            for (p in projects.take(3)) {
                                 appendLine("• **${p.codice}** — **${p.titolo}** (${p.stato})")
-                                appendLine("  Responsabile: ${p.responsabileScientifico} • Partner: ${p.istituto}")
                             }
                         }.trimEnd()
                         val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)
@@ -524,13 +623,17 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                     return
                 }
                 lower == "/aiuto" || lower == "/help" || lower == "/?" -> {
-                    val helpText = """⚡ **Guida ai Comandi Rapidi (Slash Commands)**
+                    val helpText = """⚡ **Comandi Rapidi MeDiTech (Slash Commands)**
 
 • 📅 **/agenda**: Mostra gli impegni clinici della giornata
-• 📝 **/fissa [dettagli]**: Fissa una visita o riunione (es: `/fissa domani alle 15 con Prof. Meystre`)
+• 📝 **/fissa [dettagli]**: Fissa una visita o riunione (es: `/fissa domani alle 15`)
+• 🔄 **/sposta [dettagli]**: Riprogramma un appuntamento esistente (es: `/sposta alle 16`)
+• 🗑️ **/cancella [titolo]**: Rimuove un appuntamento dall'agenda clinica
 • 📬 **/email**: Sintesi concisa delle comunicazioni prioritarie VIP
-• 🔬 **/progetti**: Stato e telemetria delle ricerche attive SUPSI & EOC
-• 🔄 **/aggiorna**: Verifica e installa aggiornamenti OTA da Git"""
+• 🔬 **/progetti**: Apre i dossier e lo stato delle ricerche SUPSI & EOC
+• 🔄 **/aggiorna**: Verifica e installa aggiornamenti OTA da Git
+• ⚙️ **/impostazioni**: Configurazione modello IA locale e preferenze
+• 🧹 **/pulisci**: Ripulisce la cronologia dei messaggi chat"""
                     val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = helpText)
                     _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
                     return
@@ -539,7 +642,12 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         }
 
         // 1. ROUTING IN LINGUAGGIO NATURALE
-        if (lower.startsWith("fissa") || lower.contains("appuntamento") || lower.contains("riunione") || lower.contains("call") || lower.contains("meeting")) {
+        if (lower.startsWith("sposta") || lower.startsWith("rinvia") || lower.contains("riprogramma")) {
+            rescheduleAppointmentFromInstruction(text)
+        } else if (lower.startsWith("cancella") || lower.startsWith("elimina") || lower.startsWith("annulla appuntamento")) {
+            val q = text.replaceFirst(Regex("^(?:cancella|elimina|annulla)\\s+(?:l'appuntamento\\s+|l'evento\\s+|la\\s+|il\\s+)?", RegexOption.IGNORE_CASE), "").trim()
+            deleteOrCancelAppointmentFromQuery(q)
+        } else if (lower.startsWith("fissa") || lower.contains("appuntamento") || lower.contains("riunione") || lower.contains("call") || lower.contains("meeting")) {
             createAppointmentFromInstruction(text)
         } else if (lower.contains("agenda") || lower.contains("cosa ho") || lower.contains("impegni") || lower == "oggi") {
             viewModelScope.launch {
@@ -566,13 +674,13 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + assistantMsg)
             }
         } else if (lower.contains("progett") || lower.contains("ricerca") || lower.contains("dossier") || lower.contains("studi")) {
+            setProjectsSheetVisible(true)
             viewModelScope.launch {
                 val projects = projectRepository.getProjects()
                 val reply = buildString {
-                    appendLine("🔬 **Progetti di Ricerca MeDiTech (${projects.size} attivi):**")
-                    for (p in projects.take(4)) {
+                    appendLine("🔬 **Dossier Ricerca MeDiTech (${projects.size} attivi):**")
+                    for (p in projects.take(3)) {
                         appendLine("• **${p.codice}** — **${p.titolo}** (${p.stato})")
-                        appendLine("  Responsabile: ${p.responsabileScientifico} • Partner: ${p.istituto}")
                     }
                 }.trimEnd()
                 val assistantMsg = ChatMessage(id = UUID.randomUUID().toString().take(8), role = "assistant", text = reply)

@@ -53,6 +53,24 @@ val MeditechSlashCommandsList = listOf(
         isDirectAction = false
     ),
     MeditechSlashCommand(
+        command = "/sposta",
+        syntax = "/sposta [dettagli]",
+        title = "Sposta Appuntamento",
+        description = "Riprogramma data o orario di un appuntamento clinico esistente (es: /sposta visita alle 16)",
+        iconEmoji = "🔄",
+        insertText = "/sposta ",
+        isDirectAction = false
+    ),
+    MeditechSlashCommand(
+        command = "/cancella",
+        syntax = "/cancella [titolo/contatto]",
+        title = "Cancella Appuntamento",
+        description = "Rimuove l'evento dall'agenda clinica e dal calendario di sistema (es: /cancella visita)",
+        iconEmoji = "🗑️",
+        insertText = "/cancella ",
+        isDirectAction = false
+    ),
+    MeditechSlashCommand(
         command = "/email",
         syntax = "/email",
         title = "Briefing Email Cliniche",

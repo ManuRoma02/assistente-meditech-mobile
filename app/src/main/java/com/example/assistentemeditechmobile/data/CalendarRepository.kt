@@ -205,6 +205,50 @@ class CalendarRepository(
         }
     }
 
+    /**
+     * Reschedules an existing event to a new start time, updating both local JSON and system calendar.
+     */
+    suspend fun rescheduleEvent(eventId: String, newStartIso: String, newDurationMinutes: Int = 0): CalendarEventItem? = withContext(Dispatchers.IO) {
+        val zone = ZoneId.systemDefault()
+        val startDt = runCatching { LocalDateTime.parse(newStartIso.take(19)) }.getOrNull() ?: return@withContext null
+        val startMillis = startDt.atZone(zone).toInstant().toEpochMilli()
+
+        mutex.withLock {
+            val current = getEventsInternal().toMutableList()
+            val idx = current.indexOfFirst { it.id == eventId }
+            if (idx >= 0) {
+                val old = current[idx]
+                val dur = if (newDurationMinutes > 0) newDurationMinutes else old.durationMinutes
+                val endDt = startDt.plusMinutes(dur.toLong())
+                val endMillis = endDt.atZone(zone).toInstant().toEpochMilli()
+
+                val updated = old.copy(
+                    startIso = startDt.format(isoFormatter),
+                    endIso = endDt.format(isoFormatter),
+                    durationMinutes = dur,
+                    startMillis = startMillis,
+                    endMillis = endMillis,
+                    status = "CONFIRMED"
+                )
+                current[idx] = updated
+                cachedEvents = current
+                eventsFile.writeText(json.encodeToString(current))
+
+                if (hasCalendarPermissions() && eventId.toLongOrNull() != null) {
+                    runCatching {
+                        val updateUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId.toLong())
+                        val values = ContentValues().apply {
+                            put(CalendarContract.Events.DTSTART, startMillis)
+                            put(CalendarContract.Events.DTEND, endMillis)
+                        }
+                        context?.contentResolver?.update(updateUri, values, null, null)
+                    }
+                }
+                updated
+            } else null
+        }
+    }
+
     suspend fun getEventsForDate(date: LocalDate): List<CalendarEventItem> = withContext(Dispatchers.IO) {
         val zone = ZoneId.systemDefault()
         val startMillis = date.atStartOfDay(zone).toInstant().toEpochMilli()

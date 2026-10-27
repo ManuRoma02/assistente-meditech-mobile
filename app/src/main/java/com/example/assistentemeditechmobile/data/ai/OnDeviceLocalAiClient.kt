@@ -199,7 +199,7 @@ PROTEZIONE DATI: Elaborazione locale offline. Nessun dato clinico o email viene 
 Data odierna: $currentDateStr. Impegni in agenda oggi: $todayEventsCount. Progetti clinici attivi: $activeProjectsCount.
 
 ## REGOLE LINGUISTICHE & OUTPUT (CONCISE & OPERATIVE)
-1. Lingua Primaria: Tutte le risposte in chat DEVONO essere in ITALIANO formale accademico.
-2. Formato: Sii conciso, vai dritto al punto, zero convenevoli generici. Max 2-3 frasi o elenco puntato breve."""
+1. Lingua Primaria: Tutte le risposte in chat DEVONO essere in ITALIANO formale clinico.
+2. Formato: Sii conciso, vai dritto al punto, zero convenevoli generici. Inizia sempre la prima riga con l'azione o l'esito diretto (Action-First). Non usare introduzioni verbose o saluti prolissi. Max 2-3 frasi o elenco compatto."""
     }
 }

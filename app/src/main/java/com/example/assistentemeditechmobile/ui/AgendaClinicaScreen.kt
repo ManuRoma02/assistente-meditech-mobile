@@ -563,11 +563,12 @@ fun ClinicalEventCard(
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = MeditechSurface,
-        border = BorderStroke(
-            0.8.dp,
-            if (event.hasConflict) MeditechWarningAmber.copy(alpha = 0.6f) else MeditechBorder
-        ),
-        shadowElevation = 1.dp,
+        border = if (event.hasConflict) {
+            BorderStroke(1.5.dp, MeditechWarningAmber)
+        } else {
+            BorderStroke(0.8.dp, MeditechBorder)
+        },
+        shadowElevation = if (event.hasConflict) 2.dp else 1.dp,
         modifier = modifier
             .fillMaxWidth()
             .cartoonCardExit(isDeleting)

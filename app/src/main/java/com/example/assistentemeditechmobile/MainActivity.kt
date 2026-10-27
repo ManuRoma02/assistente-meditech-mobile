@@ -55,6 +55,9 @@ class MainActivity : ComponentActivity() {
         // Inizializza canale notifiche ed esegue request runtime su Android 13+
         requestNotificationPermissionIfNeeded()
 
+        // Schedula controllo email periodico con vincolo batteria efficiente
+        scheduleBackgroundEmailSync()
+
         // Gestione eventuale apertura da notifica
         handleNotificationIntent(intent)
 
@@ -90,5 +93,24 @@ class MainActivity : ComponentActivity() {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+    private fun scheduleBackgroundEmailSync() {
+        val constraints = androidx.work.Constraints.Builder()
+            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(true)
+            .build()
+
+        val syncRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.assistentemeditechmobile.data.notification.EmailSyncWorker>(
+            15, java.util.concurrent.TimeUnit.MINUTES
+        )
+            .setConstraints(constraints)
+            .build()
+
+        androidx.work.WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            "MeditechEmailSyncWork",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
     }
 }

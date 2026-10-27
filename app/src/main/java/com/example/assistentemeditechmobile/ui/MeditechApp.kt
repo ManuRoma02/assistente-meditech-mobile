@@ -211,6 +211,32 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
         )
     }
 
+    // Foglio Modale Dossier & Ricerche Cliniche MeDiTech
+    if (uiState.showProjectsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.setProjectsSheetVisible(false) },
+            shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+            containerColor = MeditechBg,
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(42.dp)
+                        .height(5.dp)
+                        .clip(CircleShape)
+                        .background(MeditechBorder)
+                )
+            }
+        ) {
+            ProgettiRicercaScreen(
+                viewModel = viewModel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.88f)
+            )
+        }
+    }
+
     // Foglio Modale Azioni Rapide Cliniche (aperto dal tasto [+])
     if (showAttachSheet) {
         ClinicalActionsSheet(
@@ -221,6 +247,9 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
             onSynthesizeEmails = {
                 viewModel.postEmailBriefingToChat()
                 coroutineScope.launch { pagerState.animateScrollToPage(1) }
+            },
+            onOpenProjects = {
+                viewModel.setProjectsSheetVisible(true)
             },
             onClearChat = {
                 showClearConfirmDialog = true
@@ -1162,6 +1191,7 @@ fun TabDockItem(
 fun ClinicalActionsSheet(
     onSelectAction: (String) -> Unit,
     onSynthesizeEmails: () -> Unit,
+    onOpenProjects: () -> Unit,
     onClearChat: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -1197,6 +1227,7 @@ fun ClinicalActionsSheet(
 
             listOf(
                 Triple("Nuovo Incontro / Visita", Icons.Default.Event, "Fissa incontro clinico con Prof. Stéphane Meystre"),
+                Triple("Dossier Ricerche MeDiTech", Icons.Default.Science, "progetti"),
                 Triple("Nuova Nota Clinica", Icons.Default.NoteAdd, "Registra nota clinica per il dossier: "),
                 Triple("Sintetizza Email Ricevute", Icons.Default.MarkEmailRead, "Briefing email dall'agente locale"),
                 Triple("Ripulisci Cronologia Chat", Icons.Default.DeleteSweep, "Dissolvi i messaggi della sessione")
@@ -1206,6 +1237,7 @@ fun ClinicalActionsSheet(
                     onClick = {
                         onDismiss()
                         when (title) {
+                            "Dossier Ricerche MeDiTech" -> onOpenProjects()
                             "Sintetizza Email Ricevute" -> onSynthesizeEmails()
                             "Ripulisci Cronologia Chat" -> onClearChat()
                             else -> onSelectAction(actionPayload)
