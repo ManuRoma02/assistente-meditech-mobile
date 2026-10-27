@@ -285,6 +285,7 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             MeditechHeader(
                 currentPage = pagerState.currentPage,
@@ -296,7 +297,41 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                 onClearChat = { showClearConfirmDialog = true }
             )
         },
-        bottomBar = {
+        containerColor = MeditechBg
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .imePadding()
+        ) {
+            // Swipeable HorizontalPager
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { page ->
+                // Cartoony parallax & subtle depth during swipe
+                val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val scale = 1f - (abs(pageOffset) * 0.04f).coerceIn(0f, 0.08f)
+                            scaleX = scale
+                            scaleY = scale
+                            alpha = 1f - (abs(pageOffset) * 0.25f).coerceIn(0f, 0.4f)
+                        }
+                ) {
+                    when (page) {
+                        0 -> EmailHubScreen(viewModel = viewModel)
+                        1 -> MeditechAiChatScreen(viewModel = viewModel)
+                        2 -> AgendaClinicaScreen(viewModel = viewModel)
+                    }
+                }
+            }
+
             val currentProgress = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 2f)
             UnifiedMeditechBottomBar(
                 currentProgress = currentProgress,
@@ -327,34 +362,6 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                 isListening = uiState.isVoiceListening,
                 modifier = Modifier.fillMaxWidth()
             )
-        },
-        containerColor = MeditechBg
-    ) { innerPadding ->
-        // Swipeable HorizontalPager
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) { page ->
-            // Cartoony parallax & subtle depth during swipe
-            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        val scale = 1f - (abs(pageOffset) * 0.04f).coerceIn(0f, 0.08f)
-                        scaleX = scale
-                        scaleY = scale
-                        alpha = 1f - (abs(pageOffset) * 0.25f).coerceIn(0f, 0.4f)
-                    }
-            ) {
-                when (page) {
-                    0 -> EmailHubScreen(viewModel = viewModel)
-                    1 -> MeditechAiChatScreen(viewModel = viewModel)
-                    2 -> AgendaClinicaScreen(viewModel = viewModel)
-                }
-            }
         }
     }
 }
@@ -585,7 +592,7 @@ fun UnifiedMeditechBottomBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                .then(if (!isKeyboardOpen) Modifier.navigationBarsPadding() else Modifier)
                 .padding(horizontal = 12.dp, vertical = 7.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {

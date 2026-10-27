@@ -57,8 +57,10 @@ fun MeditechSettingsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp)
-                .padding(bottom = 36.dp)
                 .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(bottom = 24.dp)
         ) {
             // Header FISSO in stile Apple HIG & Perito Mobile
             Row(

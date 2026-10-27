@@ -70,9 +70,11 @@ fun MeditechAiChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val haptic = LocalHapticFeedback.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
 
-    // Scorrimento fluido all'ultimo messaggio
-    LaunchedEffect(uiState.chatMessages.size) {
+    // Scorrimento fluido all'ultimo messaggio all'apertura tastiera o nuovo messaggio
+    LaunchedEffect(uiState.chatMessages.size, imeBottom) {
         if (uiState.chatMessages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.chatMessages.size - 1)
         }

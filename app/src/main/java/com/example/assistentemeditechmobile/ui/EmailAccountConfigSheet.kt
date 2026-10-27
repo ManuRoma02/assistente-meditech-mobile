@@ -108,7 +108,9 @@ fun EmailAccountConfigSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 36.dp)
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(bottom = 24.dp)
         ) {
             // Header Row
             Row(

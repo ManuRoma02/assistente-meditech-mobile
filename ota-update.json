@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 11,
-  "latestVersionName": "1.4.4",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.4/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Bonifica Totale Dati Mock Dr. Bernasconi**: eliminata ogni presenza del Dr. Luca Bernasconi o Cardiocentro dalla cache locale, dall'Email Hub e dall'Agenda Clinica\n• **Simulatore Email Istituzionale**: sostituita la simulazione di prova con comunicazioni reali della Segreteria MeDiTech SUPSI\n• **Pulizia Automatica Cache**: auto-eliminazione all'avvio di qualsiasi residuo mock memorizzato sul dispositivo",
+  "latestVersionCode": 12,
+  "latestVersionName": "1.4.5",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.5/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Gestione Tastiera & IME Padding Stile Perito**: il campo di scrittura si eleva istantaneamente sopra la tastiera software senza rimanerne coperto\n• **Scorrimento Intelligente Chat**: la cronologia messaggi effettua un auto-scroll fluido verso l'ultimo elemento non appena si apre la tastiera\n• **Architettura Edge-to-Edge Reattiva**: insets unificati su tutta l'applicazione con eliminazione dei glitch visivi della navigation bar sotto la tastiera",
   "mandatory": false,
-  "publishedAt": "2026-10-27T17:22:00Z",
-  "sha256": "f2abeafdff2dbd87d6d7b4b6136d40c43aaf68f50121655762d4e43bd49eea56"
+  "publishedAt": "2026-10-27T17:55:00Z",
+  "sha256": "509a07c671472c76aee0e23b81d8138d365dfe0a4a263e14110f1696c95cacef"
 }
