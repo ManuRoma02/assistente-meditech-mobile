@@ -515,6 +515,14 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                     checkForAppUpdate(force = true)
                     return
                 }
+                lower == "/impostazioni" || lower == "/settings" || lower == "/modelli" -> {
+                    setSettingsDialogVisible(true)
+                    return
+                }
+                lower == "/pulisci" || lower == "/clear" -> {
+                    clearChatHistory()
+                    return
+                }
                 lower == "/aiuto" || lower == "/help" || lower == "/?" -> {
                     val helpText = """⚡ **Guida ai Comandi Rapidi (Slash Commands)**
 

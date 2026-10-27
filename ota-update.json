@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 13,
-  "latestVersionName": "1.4.6",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.6/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Notifiche Sistema con Recap AI**: all'arrivo di ogni email ricevi una notifica moderna ad alta priorità con riassunto IA generativo on-device (Zero Cloud)\n• **Azioni 1-Tap nella Notifica**: leggi il recap, accetta e inserisci direttamente gli incontri nell'Agenda Clinica o segna l'email come letta senza aprire l'app\n• **Banner Fluttuante In-App Animato**: scheda a comparsa con fisica a molla Emil Kowalski, pillola pulsante e lettura immediata quando l'app è aperta\n• **Supporto Android 13+ (POST_NOTIFICATIONS)**: gestione automatica dei permessi e canale dedicato con vibrazione soft e led ciano",
+  "latestVersionCode": 14,
+  "latestVersionName": "1.4.7",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.7/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Menu a Comparsa Comandi Slash (/)**: digitando '/' si apre istantaneamente un popup fluttuante con tutte le opzioni, badge sintassi, emoji e descrizioni dettagliate\n• **Filtro Istantaneo Digitazione**: mentre scrivi dopo '/' (/f, /ag, /em, ecc.) l'elenco si riduce dinamicamente in tempo reale con animazione a molla fluida\n• **Azioni 1-Tap Dirette o con Template**: tocca un comando diretto (/agenda, /email, /aggiorna, /impostazioni) per eseguirlo subito o compila i parametri (/fissa) con cursore posizionato alla fine",
   "mandatory": false,
-  "publishedAt": "2026-10-27T18:10:00Z",
-  "sha256": "235c952777f4c6e909ba93fa04c6a9599729a4e7979e60d25ec84c2857423f34"
+  "publishedAt": "2026-10-27T18:32:00Z",
+  "sha256": "6867658957a4c7758f5bfbbf580c5a607b31fa9b518c241a0061874380e86845"
 }

@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.assistentemeditechmobile"
         minSdk = 26
         targetSdk = 37
-        versionCode = 13
-        versionName = "1.4.6"
+        versionCode = 14
+        versionName = "1.4.7"
         ndk {
             abiFilters += listOf("arm64-v8a")
         }

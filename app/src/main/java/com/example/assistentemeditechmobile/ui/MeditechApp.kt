@@ -6,11 +6,7 @@ import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -723,6 +719,56 @@ fun UnifiedMeditechBottomBar(
                 .padding(horizontal = 12.dp, vertical = 7.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            val isSlashMode = inputFieldValue.text.startsWith("/")
+
+            // Popup Comandi Slash (/) in Stile Apple HIG & Perito Mobile
+            AnimatedVisibility(
+                visible = isSlashMode,
+                enter = fadeIn(tween(260, easing = FastOutSlowInEasing)) + expandVertically(
+                    animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+                ),
+                exit = fadeOut(tween(200, easing = FastOutLinearInEasing)) + shrinkVertically(
+                    animationSpec = tween(200, easing = FastOutLinearInEasing)
+                )
+            ) {
+                val typedQuery = inputFieldValue.text.removePrefix("/").trim().lowercase(java.util.Locale.ITALIAN)
+                val filtered = remember(typedQuery) {
+                    if (typedQuery.isEmpty()) {
+                        MeditechSlashCommandsList
+                    } else {
+                        MeditechSlashCommandsList.filter {
+                            it.command.removePrefix("/").contains(typedQuery) ||
+                            it.title.lowercase(java.util.Locale.ITALIAN).contains(typedQuery) ||
+                            it.syntax.lowercase(java.util.Locale.ITALIAN).contains(typedQuery) ||
+                            it.description.lowercase(java.util.Locale.ITALIAN).contains(typedQuery)
+                        }
+                    }
+                }
+
+                MeditechSlashCommandsPopupCard(
+                    commands = filtered,
+                    typedQuery = typedQuery,
+                    onSelectCommand = { cmd ->
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        if (cmd.isDirectAction) {
+                            onInputFieldValueChange(TextFieldValue(""))
+                            onSendMessage(cmd.command)
+                        } else {
+                            val newText = cmd.insertText
+                            onInputFieldValueChange(
+                                TextFieldValue(
+                                    text = newText,
+                                    selection = TextRange(newText.length)
+                                )
+                            )
+                        }
+                    },
+                    onDismiss = {
+                        onInputFieldValueChange(TextFieldValue(""))
+                    }
+                )
+            }
+
             // Riga 1: Barra di scrittura con [+] e morphing Mic/Send
             Row(
                 modifier = Modifier
