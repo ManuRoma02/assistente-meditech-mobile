@@ -39,3 +39,15 @@ val MeditechTextTertiary = Color(0xFF64748B)       // Muted Label / Caption Slat
 val VipMeystreCyan = Color(0xFF0284C7)
 val VipMeystreGlow = Color(0xFF38BDF8)
 val VipMeystreBg = Color(0xFFE0F2FE)
+
+// =========================================================================
+// Dark Mode OLED Clinical Palette (Night Shift & Low Light Wards)
+// =========================================================================
+val MeditechDarkBg = Color(0xFF0B131B)                 // Deep OLED Clinical Canvas
+val MeditechDarkSurface = Color(0xFF131F2B)            // Card Surface in Dark Mode
+val MeditechDarkGroupedBg = Color(0xFF1B2A39)          // Grouped Containers in Dark Mode
+val MeditechDarkBorder = Color(0xFF263A4D)             // Border in Dark Mode
+val MeditechDarkBorderCyan = Color(0xFF164E63)         // Cyan Border in Dark Mode
+val MeditechDarkTextPrimary = Color(0xFFF1F5F9)        // Bright Off-White text
+val MeditechDarkTextSecondary = Color(0xFFCBD5E1)      // Slate text
+val MeditechDarkTextTertiary = Color(0xFF94A3B8)       // Muted text

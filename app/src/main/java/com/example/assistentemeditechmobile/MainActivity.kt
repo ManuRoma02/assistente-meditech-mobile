@@ -6,23 +6,27 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assistentemeditechmobile.data.notification.EmailNotificationManager
+import com.example.assistentemeditechmobile.data.security.MeditechBiometricManager
 import com.example.assistentemeditechmobile.theme.AssistenteMeditechMobileTheme
 import com.example.assistentemeditechmobile.ui.AssistenteMeditechApp
 import com.example.assistentemeditechmobile.ui.MeditechViewModel
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private val viewModel: MeditechViewModel by viewModels()
 
@@ -34,9 +38,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val audioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* Permesso gestito */ }
+
     override fun onStart() {
         super.onStart()
         viewModel.refreshEasterEggForAppOpen()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkBiometricOnResume()
+    }
+
+    private fun checkBiometricOnResume() {
+        val state = viewModel.uiState.value
+        if (state.biometricLockEnabled && !state.isAppUnlocked && MeditechBiometricManager.isBiometricAvailable(this)) {
+            MeditechBiometricManager.promptBiometric(
+                activity = this,
+                onSuccess = { viewModel.unlockApp() },
+                onError = { /* Utente può ritentare */ }
+            )
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,8 +76,9 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
 
-        // Inizializza canale notifiche ed esegue request runtime su Android 13+
+        // Inizializza canali notifiche ed esegue request runtime su Android 13+
         requestNotificationPermissionIfNeeded()
+        requestAudioPermissionIfNeeded()
 
         // Schedula controllo email periodico con vincolo batteria efficiente
         scheduleBackgroundEmailSync()
@@ -62,12 +87,30 @@ class MainActivity : ComponentActivity() {
         handleNotificationIntent(intent)
 
         setContent {
-            AssistenteMeditechMobileTheme {
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val isDark = when (uiState.themeMode) {
+                "Chiaro" -> false
+                "Scuro" -> true
+                else -> isSystemInDarkTheme()
+            }
+
+            AssistenteMeditechMobileTheme(darkTheme = isDark) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AssistenteMeditechApp(viewModel = viewModel)
+                    AssistenteMeditechApp(
+                        viewModel = viewModel,
+                        onRequestBiometricPrompt = {
+                            if (MeditechBiometricManager.isBiometricAvailable(this@MainActivity)) {
+                                MeditechBiometricManager.promptBiometric(
+                                    activity = this@MainActivity,
+                                    onSuccess = { viewModel.unlockApp() },
+                                    onError = { /* Retry */ }
+                                )
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -92,6 +135,12 @@ class MainActivity : ComponentActivity() {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
+    }
+
+    private fun requestAudioPermissionIfNeeded() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 

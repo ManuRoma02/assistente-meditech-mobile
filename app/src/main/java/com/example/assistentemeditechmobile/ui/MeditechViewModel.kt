@@ -64,7 +64,13 @@ data class MeditechUiState(
     val deletingEventIds: Set<String> = emptySet(),
     val sentEmailIds: Set<String> = emptySet(),
     val easterEggMessage: String? = null,
-    val incomingEmailAlert: EmailItem? = null
+    val incomingEmailAlert: EmailItem? = null,
+    val themeMode: String = "Sistema",
+    val biometricLockEnabled: Boolean = false,
+    val isAppUnlocked: Boolean = true,
+    val isAgendaRefreshing: Boolean = false,
+    val isEmailRefreshing: Boolean = false,
+    val liveVoiceTranscription: String = ""
 )
 
 class MeditechViewModel(application: Application) : AndroidViewModel(application) {
@@ -78,7 +84,9 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
     val aiEngine = MeditechAiEngine(calendarRepository, vipRepository)
     val onDeviceAiClient = OnDeviceLocalAiClient()
     val otaUpdateManager = com.example.assistentemeditechmobile.data.ota.OtaUpdateManager(context)
+    val speechManager = com.example.assistentemeditechmobile.data.speech.MeditechSpeechManager(context)
 
+    private val securityPrefs = context.getSharedPreferences("meditech_security", Context.MODE_PRIVATE)
     private val easterEggPreferences = context.getSharedPreferences("meditech_easter_eggs", Context.MODE_PRIVATE)
     private val lastEasterEggIndexKey = "last_message_index"
 
@@ -286,13 +294,19 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                     "• 💡 Digita **/** per l'elenco comandi con sintesi rapida"
             )
 
+            val savedTheme = securityPrefs.getString("theme_mode", "Sistema") ?: "Sistema"
+            val savedBiometric = securityPrefs.getBoolean("biometric_lock", false)
+
             _uiState.value = _uiState.value.copy(
                 vips = vips,
                 emails = emails,
                 emailAccountConfig = config,
                 projects = projects,
                 events = events,
-                chatMessages = listOf(welcomeMsg)
+                chatMessages = listOf(welcomeMsg),
+                themeMode = savedTheme,
+                biometricLockEnabled = savedBiometric,
+                isAppUnlocked = !savedBiometric
             )
         }
     }
@@ -724,8 +738,90 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun startVoiceDictation(onResult: (String) -> Unit) {
+        if (!speechManager.hasRecordAudioPermission()) {
+            _uiState.update { it.copy(statusBanner = "Permesso microfono non concesso. Concedilo per dettare a voce.") }
+            return
+        }
+        _uiState.update { it.copy(isVoiceListening = true, liveVoiceTranscription = "Ascolto in corso...") }
+        speechManager.startListening(
+            onResult = { recognizedText ->
+                _uiState.update { it.copy(isVoiceListening = false, liveVoiceTranscription = recognizedText) }
+                onResult(recognizedText)
+            },
+            onPartialResult = { partial ->
+                _uiState.update { it.copy(liveVoiceTranscription = partial) }
+            },
+            onError = { error ->
+                _uiState.update { it.copy(isVoiceListening = false, liveVoiceTranscription = "", statusBanner = error) }
+            },
+            onListeningStateChanged = { listening ->
+                _uiState.update { it.copy(isVoiceListening = listening) }
+            }
+        )
+    }
+
+    fun stopVoiceDictation() {
+        speechManager.stopListening()
+        _uiState.update { it.copy(isVoiceListening = false, liveVoiceTranscription = "") }
+    }
+
+    fun toggleVoiceDictation(onResult: (String) -> Unit) {
+        if (_uiState.value.isVoiceListening) {
+            stopVoiceDictation()
+        } else {
+            startVoiceDictation(onResult)
+        }
+    }
+
     fun setVoiceListening(listening: Boolean) {
         _uiState.value = _uiState.value.copy(isVoiceListening = listening)
+    }
+
+    fun refreshAgendaPull() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAgendaRefreshing = true) }
+            val events = calendarRepository.getEventsForDate(_uiState.value.selectedDate)
+            kotlinx.coroutines.delay(350L)
+            _uiState.update { it.copy(events = events, isAgendaRefreshing = false, statusBanner = "Agenda sincronizzata") }
+        }
+    }
+
+    fun refreshEmailPull() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isEmailRefreshing = true) }
+            val emails = emailRepository.getEmails()
+            kotlinx.coroutines.delay(350L)
+            _uiState.update { it.copy(emails = emails, isEmailRefreshing = false, statusBanner = "Casella email aggiornata") }
+        }
+    }
+
+    fun markEmailAsRead(emailId: String) {
+        viewModelScope.launch {
+            emailRepository.markAsRead(emailId)
+            val updated = emailRepository.getEmails()
+            _uiState.update { it.copy(emails = updated, statusBanner = "Email contrassegnata come letta") }
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        securityPrefs.edit().putString("theme_mode", mode).apply()
+        _uiState.update { it.copy(themeMode = mode) }
+    }
+
+    fun setBiometricLockEnabled(enabled: Boolean) {
+        securityPrefs.edit().putBoolean("biometric_lock", enabled).apply()
+        _uiState.update { it.copy(biometricLockEnabled = enabled) }
+    }
+
+    fun unlockApp() {
+        _uiState.update { it.copy(isAppUnlocked = true) }
+    }
+
+    fun lockApp() {
+        if (_uiState.value.biometricLockEnabled) {
+            _uiState.update { it.copy(isAppUnlocked = false) }
+        }
     }
 
     fun dismissBanner() {

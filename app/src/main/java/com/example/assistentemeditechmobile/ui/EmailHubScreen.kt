@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assistentemeditechmobile.domain.EmailItem
 import com.example.assistentemeditechmobile.domain.VipContact
 import com.example.assistentemeditechmobile.theme.*
@@ -47,13 +49,16 @@ import kotlinx.coroutines.launch
  * - Card email ad altissima leggibilità con avatar iniziali, badge VIP e sintesi on-device
  * - Rilevamento automatico meeting con 1-tap add to calendar
  * - Bozze di risposta IA rapide con animazione cartoon paper plane
+ * - SwipeToDismissBox per segna-letta / elimina rapida
+ * - PullToRefreshBox per sincronizzazione immediata
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmailHubScreen(
     viewModel: MeditechViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val haptic = LocalHapticFeedback.current
@@ -248,122 +253,185 @@ fun EmailHubScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Lista Email o Stato Vuoto (senza email fittizie inventate)
-        if (filteredEmails.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(22.dp),
-                    color = MeditechSurface,
-                    border = BorderStroke(0.8.dp, MeditechBorderCyan),
-                    shadowElevation = 1.dp,
-                    modifier = Modifier.padding(20.dp)
+        // Lista Email o Stato Vuoto con Pull-To-Refresh e SwipeToDismiss
+        PullToRefreshBox(
+            isRefreshing = uiState.isEmailRefreshing,
+            onRefresh = { viewModel.refreshEmailPull() },
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            if (filteredEmails.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier.padding(22.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = MeditechSurface,
+                        border = BorderStroke(0.8.dp, MeditechBorderCyan),
+                        shadowElevation = 1.dp,
+                        modifier = Modifier.padding(20.dp)
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MeditechCyanSoft,
-                            modifier = Modifier.size(54.dp)
+                        Column(
+                            modifier = Modifier.padding(22.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.MailOutline,
-                                    contentDescription = null,
-                                    tint = MeditechCyanPrimary,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = "Nessuna email presente",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MeditechTextPrimary
-                        )
-                        Text(
-                            text = "Nessuna email inventata di default. Collega la tua casella IMAP/Exchange o simula l'arrivo di una comunicazione con il pulsante in alto.",
-                            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-                            color = MeditechTextSecondary,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val configInteraction = remember { MutableInteractionSource() }
-                            OutlinedButton(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.setEmailConfigSheetVisible(true)
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, MeditechCyanPrimary),
-                                modifier = Modifier.emilPressScale(configInteraction, pressedScale = 0.95f)
+                            Surface(
+                                shape = CircleShape,
+                                color = MeditechCyanSoft,
+                                modifier = Modifier.size(54.dp)
                             ) {
-                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = MeditechCyanPrimary)
-                                Spacer(Modifier.width(6.dp))
-                                Text("Configura Casella", fontSize = 12.sp, color = MeditechCyanPrimary, fontWeight = FontWeight.SemiBold)
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.MailOutline,
+                                        contentDescription = null,
+                                        tint = MeditechCyanPrimary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
                             }
+                            Text(
+                                text = "Nessuna email presente",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MeditechTextPrimary
+                            )
+                            Text(
+                                text = "Nessuna email inventata di default. Collega la tua casella IMAP/Exchange o simula l'arrivo di una comunicazione con il pulsante in alto.",
+                                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+                                color = MeditechTextSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
 
-                            val simInteraction = remember { MutableInteractionSource() }
-                            Button(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.simulateReceiveIncomingEmail()
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
-                                modifier = Modifier.cartoonPressSquash(simInteraction, pressedScaleY = 0.92f)
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.MarkEmailUnread, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
-                                Spacer(Modifier.width(6.dp))
-                                Text("Simula Ricezione", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                val configInteraction = remember { MutableInteractionSource() }
+                                OutlinedButton(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        viewModel.setEmailConfigSheetVisible(true)
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MeditechCyanPrimary),
+                                    modifier = Modifier.emilPressScale(configInteraction, pressedScale = 0.95f)
+                                ) {
+                                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = MeditechCyanPrimary)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Configura Casella", fontSize = 12.sp, color = MeditechCyanPrimary, fontWeight = FontWeight.SemiBold)
+                                }
+
+                                val simInteraction = remember { MutableInteractionSource() }
+                                Button(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        viewModel.simulateReceiveIncomingEmail()
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                                    modifier = Modifier.cartoonPressSquash(simInteraction, pressedScaleY = 0.92f)
+                                ) {
+                                    Icon(Icons.Default.MarkEmailUnread, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Simula Ricezione", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(filteredEmails, key = { it.id }) { email ->
-                    EmailCard(
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                            placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                            fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
-                        ),
-                        email = email,
-                        isSending = email.id in uiState.sentEmailIds,
-                        onClick = { viewModel.openEmailDetail(email) },
-                        onGenerateDraft = { viewModel.generateReplyDraft(email) },
-                        onSendReply = { viewModel.sendEmailReply(email, email.draftReply) },
-                        onCopyDraft = {
-                            clipboardManager.setText(AnnotatedString(it))
-                            Toast.makeText(context, "Bozza copiata negli appunti", Toast.LENGTH_SHORT).show()
-                        },
-                        onAddToAgenda = {
-                            viewModel.addMeetingFromEmail(
-                                title = email.subject,
-                                slotStr = email.suggestedSlot,
-                                durationMinutes = email.suggestedDurationMinutes,
-                                contact = email.sender.substringBefore('<').trim()
-                            )
-                        }
-                    )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(filteredEmails, key = { it.id }) { email ->
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { dismissValue ->
+                                when (dismissValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.markEmailAsRead(email.id)
+                                        false
+                                    }
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.deleteEmail(email.id)
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            }
+                        )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val color = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> MeditechCyanPrimary
+                                    SwipeToDismissBoxValue.EndToStart -> MeditechUrgentRed
+                                    else -> Color.Transparent
+                                }
+                                val alignment = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                    else -> Alignment.Center
+                                }
+                                val icon = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.MarkEmailRead
+                                    SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+                                    else -> null
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(color)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = alignment
+                                ) {
+                                    if (icon != null) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            },
+                            content = {
+                                EmailCard(
+                                    modifier = Modifier.animateItem(
+                                        fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                                        placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                                        fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+                                    ),
+                                    email = email,
+                                    isSending = email.id in uiState.sentEmailIds,
+                                    onClick = { viewModel.openEmailDetail(email) },
+                                    onGenerateDraft = { viewModel.generateReplyDraft(email) },
+                                    onSendReply = { viewModel.sendEmailReply(email, email.draftReply) },
+                                    onCopyDraft = {
+                                        clipboardManager.setText(AnnotatedString(it))
+                                        Toast.makeText(context, "Bozza copiata negli appunti", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onAddToAgenda = {
+                                        viewModel.addMeetingFromEmail(
+                                            title = email.subject,
+                                            slotStr = email.suggestedSlot,
+                                            durationMinutes = email.suggestedDurationMinutes,
+                                            contact = email.sender.substringBefore('<').trim()
+                                        )
+                                    }
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }

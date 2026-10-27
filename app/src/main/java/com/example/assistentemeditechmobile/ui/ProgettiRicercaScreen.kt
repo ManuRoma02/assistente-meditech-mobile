@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assistentemeditechmobile.domain.ClinicalProject
 import com.example.assistentemeditechmobile.theme.*
 
@@ -41,7 +42,7 @@ fun ProgettiRicercaScreen(
     viewModel: MeditechViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
 
     var showAddDialog by remember { mutableStateOf(false) }

@@ -250,6 +250,95 @@ fun MeditechSettingsSheet(
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.5.sp),
                         color = MeditechTextPrimary
                     )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MeditechBorder)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Protezione Biometrica (Impronta / Viso)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MeditechTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Richiedi autenticazione per accedere ai dati sanitari",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MeditechTextTertiary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(
+                            checked = uiState.biometricLockEnabled,
+                            onCheckedChange = { viewModel.setBiometricLockEnabled(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = MeditechCyanPrimary)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // =========================================================================
+            // TENDINA: TEMA GRAFICO & DISPLAY
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "🎨 Tema Grafico & Aspetto",
+                subtitle = "Modalità Chiara, Scura (OLED) o di Sistema",
+                badgeText = uiState.themeMode,
+                badgeColor = MeditechCyanSoft,
+                badgeTextColor = MeditechCyanDark,
+                isExpanded = expandedSections.contains("theme"),
+                onToggle = { toggleSection("theme") }
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Seleziona Tema:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MeditechTextPrimary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("Sistema", "Chiaro", "Scuro").forEach { mode ->
+                            val isSelected = uiState.themeMode == mode
+                            Surface(
+                                onClick = { viewModel.setThemeMode(mode) },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MeditechCyanPrimary else MeditechSurface,
+                                border = BorderStroke(0.8.dp, if (isSelected) MeditechCyanPrimary else MeditechBorder),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = mode,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) Color.White else MeditechTextPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Text(
+                        text = "Il tema scuro è ideale per turni ospedalieri notturni e riduce il consumo di batteria sui display AMOLED.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                        color = MeditechTextTertiary
+                    )
                 }
             }
 

@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 15,
-  "latestVersionName": "1.4.8",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.8/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Integrazione Dossier Ricerca MeDiTech**: accesso diretto ai progetti scientifici SUPSI ed EOC da foglio azioni rapide [+] e con comando `/progetti`\n• **Nuovi Comandi Slash**: aggiunti `/sposta` (riprogrammazione appuntamenti) e `/cancella` (eliminazione da agenda locale e calendario di sistema)\n• **Copywriting Action-First & Token-Saver**: risposte del motore IA concise con esito diretto sulla prima riga per efficienza clinica assoluta\n• **Indicatori Visivi Sovrapposizioni**: bordo rinforzato ambra e badge per conflitti di orario in agenda clinica\n• **Sincronizzazione Notifiche Efficiente**: raggruppamento notifiche di sistema e vincolo di risparmio energetico WorkManager",
+  "latestVersionCode": 16,
+  "latestVersionName": "1.4.9",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.9/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Modern Android Lifecycle**: adozione di `collectAsStateWithLifecycle()` su tutte le schermate per cancellare sottoscrizioni quando l'app è in background e risparmiare batteria\n• **Dettatura Vocale Reale On-Device**: integrazione di `SpeechRecognizer` nativo italiano offline per parlare direttamente al microfono e trascrivere istantaneamente impegni e messaggi\n• **Material 3 Pull-To-Refresh**: swipe verso il basso per sincronizzare in tempo reale sia l'agenda clinica che la casella email\n• **Swipe-To-Dismiss sulle Email**: swipe a destra per segnare come letta e swipe a sinistra per eliminare con tick aptico\n• **Dark Mode Completa & Display**: palette scura OLED per turni clinici notturni selezionabile nelle impostazioni (Sistema, Chiaro, Scuro)\n• **Protezione Biometrica**: blocco opzionale con impronta digitale/viso per tutelare i dati sanitari confidenziali SUPSI ed EOC\n• **Predictive Back Navigation**: abilitate le gesture di ritorno predittivo Android 14/15+",
   "mandatory": false,
-  "publishedAt": "2026-10-27T20:35:00Z",
-  "sha256": "4708612ae14752f63eceb0cd7012b9cf268df6ee96d29e71ef7fbd9836c0e738"
+  "publishedAt": "2026-10-28T00:25:00Z",
+  "sha256": "3f637017ee19e66a87d07b7e83f602445954871abf1ebe07a45df52353217d04"
 }

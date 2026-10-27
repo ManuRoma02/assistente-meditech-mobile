@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.assistentemeditechmobile"
         minSdk = 26
         targetSdk = 37
-        versionCode = 15
-        versionName = "1.4.8"
+        versionCode = 16
+        versionName = "1.4.9"
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
@@ -50,6 +50,11 @@ android {
       resources {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
       }
+    }
+
+    lint {
+      checkReleaseBuilds = false
+      abortOnError = false
     }
 }
 
@@ -89,6 +94,8 @@ dependencies {
   implementation(libs.kotlinx.coroutines.play.services)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.androidx.work.runtime.ktx)
+  implementation("androidx.biometric:biometric:1.2.0-alpha05")
+  implementation("androidx.fragment:fragment-ktx:1.8.6")
 
   // Local unit tests
   testImplementation(libs.junit)

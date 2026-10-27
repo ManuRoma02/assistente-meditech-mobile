@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assistentemeditechmobile.domain.MeditechTab
 import com.example.assistentemeditechmobile.theme.*
 import kotlinx.coroutines.launch
@@ -53,10 +54,70 @@ import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
-    val uiState by viewModel.uiState.collectAsState()
+fun AssistenteMeditechApp(
+    viewModel: MeditechViewModel,
+    onRequestBiometricPrompt: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Schermata di blocco biometrico se attiva
+    if (uiState.biometricLockEnabled && !uiState.isAppUnlocked) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(28.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MeditechCyanSoft,
+                        modifier = Modifier.size(86.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Fingerprint,
+                                contentDescription = null,
+                                tint = MeditechCyanPrimary,
+                                modifier = Modifier.size(46.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Accesso Clinico Riservato",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MeditechTextPrimary
+                    )
+                    Text(
+                        text = "Protezione biometrica attiva per tutelare comunicazioni e dossier clinici dell'Istituto MeDiTech (SUPSI & EOC).",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MeditechTextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onRequestBiometricPrompt,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                        modifier = Modifier.height(48.dp)
+                    ) {
+                        Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sblocca con Impronta / Viso", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+        return
+    }
 
     // 3 Pagine: 0 = Email, 1 = AI Chat (default center!), 2 = Agenda Impegni
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
@@ -82,12 +143,24 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
     }
 
     val triggerVoiceInput: () -> Unit = {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Parla ora... (es: 'Fissa incontro con Stéphane Meystre')")
+        if (viewModel.speechManager.isAvailable() && viewModel.speechManager.hasRecordAudioPermission()) {
+            viewModel.toggleVoiceDictation { spokenText ->
+                if (spokenText.isNotBlank()) {
+                    inputFieldValue = TextFieldValue(spokenText, selection = TextRange(spokenText.length))
+                    viewModel.sendUserChatMessage(spokenText)
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(1)
+                    }
+                }
+            }
+        } else {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "it-IT")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Parla ora... (es: 'Fissa incontro con Stéphane Meystre')")
+            }
+            speechLauncher.launch(intent)
         }
-        speechLauncher.launch(intent)
     }
 
     // Sincronizzazione swipe orizzontale Pager -> ViewModel Tab

@@ -34,8 +34,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assistentemeditechmobile.domain.CalendarEventItem
 import com.example.assistentemeditechmobile.theme.*
 import java.time.LocalDate
@@ -50,12 +52,13 @@ import java.util.Locale
  * - Rilevamento visivo dei conflitti orari con alert dedicato
  * - 1-Tap Google Meet & 1-Tap Google Maps Sede
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgendaClinicaScreen(
     viewModel: MeditechViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
@@ -191,123 +194,129 @@ fun AgendaClinicaScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3. Lista Appuntamenti o Stato Vuoto Illustrato
-        if (uiState.events.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MeditechSurface,
-                    border = BorderStroke(0.8.dp, MeditechBorder),
-                    shadowElevation = 0.5.dp,
-                    modifier = Modifier
-                        .fillMaxWidth(0.92f)
-                        .padding(vertical = 20.dp)
+        // 3. Lista Appuntamenti o Stato Vuoto Illustrato con Pull-To-Refresh
+        PullToRefreshBox(
+            isRefreshing = uiState.isAgendaRefreshing,
+            onRefresh = { viewModel.refreshAgendaPull() },
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            if (uiState.events.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MeditechSurface,
+                        border = BorderStroke(0.8.dp, MeditechBorder),
+                        shadowElevation = 0.5.dp,
+                        modifier = Modifier
+                            .fillMaxWidth(0.92f)
+                            .padding(vertical = 20.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(MeditechCyanSoft),
-                            contentAlignment = Alignment.Center
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.EventAvailable,
-                                contentDescription = null,
-                                tint = MeditechCyanPrimary,
-                                modifier = Modifier.size(32.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(MeditechCyanSoft),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.EventAvailable,
+                                    contentDescription = null,
+                                    tint = MeditechCyanPrimary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                text = "Nessun Impegno Clinico",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MeditechTextPrimary
                             )
-                        }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
 
-                        Text(
-                            text = "Nessun Impegno Clinico",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MeditechTextPrimary
-                        )
+                            Text(
+                                text = "L'agenda del polo SUPSI MeDiTech è libera per questa data. Puoi chiedere all'agente AI on-device di pianificare un nuovo incontro.",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 13.sp,
+                                    lineHeight = 19.sp
+                                ),
+                                color = MeditechTextTertiary,
+                                textAlign = TextAlign.Center
+                            )
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(
-                            text = "L'agenda del polo SUPSI MeDiTech è libera per questa data. Puoi chiedere all'agente AI on-device di pianificare un nuovo incontro.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 13.sp,
-                                lineHeight = 19.sp
-                            ),
-                            color = MeditechTextTertiary,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = { showAddDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 9.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Fissa con l'IA", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                            Button(
+                                onClick = { showAddDialog = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 9.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Fissa con l'IA", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                            }
                         }
                     }
                 }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 12.dp)
-            ) {
-                items(uiState.events, key = { it.id }) { event ->
-                    ClinicalEventCard(
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                            placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
-                            fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
-                        ),
-                        event = event,
-                        isDeleting = event.id in uiState.deletingEventIds,
-                        onCancelClick = { eventToCancel = event },
-                        onMeetClick = {
-                            if (event.hangoutLink.isNotBlank()) {
-                                val meetIntent = Intent(Intent.ACTION_VIEW, Uri.parse(event.hangoutLink))
-                                meetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(meetIntent)
-                            }
-                        },
-                        onShareClick = {
-                            val timeStart = event.startIso.substringAfter('T').take(5).ifBlank { "14:00" }
-                            val timeEnd = event.endIso.substringAfter('T').take(5).ifBlank { "15:00" }
-                            val shareText = buildString {
-                                append("🩺 Impegno MeDiTech SUPSI:\n")
-                                append("📌 ${event.title}\n")
-                                append("🗓 Orario: $timeStart - $timeEnd (${event.durationMinutes} min)\n")
-                                if (event.location.isNotBlank()) append("📍 Sede: ${event.location}\n")
-                                if (event.isOnline && event.hangoutLink.isNotBlank()) {
-                                    append("💻 Google Meet: ${event.hangoutLink}\n")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 12.dp)
+                ) {
+                    items(uiState.events, key = { it.id }) { event ->
+                        ClinicalEventCard(
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                                placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                                fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+                            ),
+                            event = event,
+                            isDeleting = event.id in uiState.deletingEventIds,
+                            onCancelClick = { eventToCancel = event },
+                            onMeetClick = {
+                                if (event.hangoutLink.isNotBlank()) {
+                                    val meetIntent = Intent(Intent.ACTION_VIEW, Uri.parse(event.hangoutLink))
+                                    meetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(meetIntent)
                                 }
+                            },
+                            onShareClick = {
+                                val timeStart = event.startIso.substringAfter('T').take(5).ifBlank { "14:00" }
+                                val timeEnd = event.endIso.substringAfter('T').take(5).ifBlank { "15:00" }
+                                val shareText = buildString {
+                                    append("🩺 Impegno MeDiTech SUPSI:\n")
+                                    append("📌 ${event.title}\n")
+                                    append("🗓 Orario: $timeStart - $timeEnd (${event.durationMinutes} min)\n")
+                                    if (event.location.isNotBlank()) append("📍 Sede: ${event.location}\n")
+                                    if (event.isOnline && event.hangoutLink.isNotBlank()) {
+                                        append("💻 Google Meet: ${event.hangoutLink}\n")
+                                    }
+                                }
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                    type = "text/plain"
+                                }
+                                val chooser = Intent.createChooser(sendIntent, "Condividi Impegno Clinico:")
+                                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(chooser)
                             }
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
-                            }
-                            val chooser = Intent.createChooser(sendIntent, "Condividi Impegno Clinico:")
-                            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(chooser)
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
