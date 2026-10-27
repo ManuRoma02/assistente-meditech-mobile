@@ -108,6 +108,9 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
     // Dialog Aggiornamento Git OTA
     if (uiState.isUpdateAvailable || uiState.isDownloadingUpdate) {
         val manifest = uiState.updateManifest
+        val readyApk = uiState.readyToInstallApk
+        val isReady = readyApk != null && readyApk.exists()
+
         AlertDialog(
             onDismissRequest = { if (!uiState.isDownloadingUpdate) viewModel.dismissUpdateDialog() },
             title = {
@@ -129,7 +132,7 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
             text = {
                 Column {
                     Text(
-                        text = "Nuova versione disponibile: v${manifest?.latestVersionName ?: "1.2.0"} (Build #${manifest?.latestVersionCode ?: 3})",
+                        text = "Nuova versione: v${manifest?.latestVersionName ?: "1.4.1"} (Build #${manifest?.latestVersionCode ?: 8})",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MeditechCyanDark
                     )
@@ -137,7 +140,7 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                     Text(
                         text = formatMeditechMessageText(
                             raw = manifest?.releaseNotes?.ifBlank {
-                                "• **Docking Unificato**: navigazione fluida a 3 sezioni integrata in basso\n• **Modelli On-Device**: supporto **Qwen 3.5** locale\n• **Markdown Nativo**: eliminati asterischi grezzi\n• **Briefing Email**: sintesi automatica comunicazioni\n• **Aggiornamenti OTA**: installazione rapida **1-Tap**"
+                                "• **Rivoluzione UI/UX Apple HIG & Stitch Design**: redesign integrale di ogni schermata, tipografia e componenti clinici ad altissimo contrasto\n• **Rendering Gerarchico Markdown**: architettura a blocchi con titoli zaffiro, elenchi a punti indentati e callout box per avvisi\n• **Generative UI & Card Interattive**: card sotto le bolle per verifica appuntamenti e 1-tap Google Meet / Maps\n• **Bento Grid Ricerca SUPSI**: telemetria attiva con battito cardiaco ECG animato\n• **Aggiornamenti OTA 1-Tap**: download rapido e installazione fluida da Git con verifica crittografica SHA-256"
                             } ?: "",
                             isUser = false
                         ),
@@ -158,24 +161,36 @@ fun AssistenteMeditechApp(viewModel: MeditechViewModel) {
                             color = MeditechCyanPrimary,
                             trackColor = MeditechCyanSoft
                         )
+                    } else if (isReady) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Pacchetto APK pronto e verificato. Tocca 'Installa Ora' per procedere.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MeditechTealActive,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (!viewModel.otaUpdateManager.canRequestPackageInstalls()) {
-                            context.startActivity(viewModel.otaUpdateManager.createManageUnknownAppSourcesIntent())
+                        if (isReady && readyApk != null) {
+                            viewModel.installOrPromptPermission(context, readyApk)
                         } else {
-                            viewModel.startOtaDownload { apkFile ->
-                                context.startActivity(viewModel.otaUpdateManager.createInstallIntent(apkFile))
-                            }
+                            viewModel.startOtaDownload(context)
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
                     enabled = !uiState.isDownloadingUpdate
                 ) {
-                    Text(if (uiState.isDownloadingUpdate) "Scaricamento..." else "Aggiorna da Git (1-Tap)")
+                    Text(
+                        when {
+                            uiState.isDownloadingUpdate -> "Scaricamento..."
+                            isReady -> "Installa Ora"
+                            else -> "Aggiorna da Git (1-Tap)"
+                        }
+                    )
                 }
             },
             dismissButton = {

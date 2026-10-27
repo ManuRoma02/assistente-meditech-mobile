@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeDiTech SUPSI — Identità Ufficiale (Concetto 1 Selezionato)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 2.5rem;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.light { background: #F8FAFC; color: #0F172A; }
+  body.dark { background: #0B1120; color: #F1F5F9; }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    padding-bottom: 1.5rem;
+  }
+  .title-group h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .title-group p {
+    font-size: 0.95rem;
+    color: #64748B;
+    margin-top: 0.35rem;
+  }
+  .badge-selected {
+    display: inline-block;
+    background: #0284C7;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+  .toggle {
+    padding: 0.6rem 1.25rem;
+    border: 1px solid #0284C7;
+    border-radius: 8px;
+    background: #0284C7;
+    color: #FFFFFF;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .toggle:hover {
+    background: #0369A1;
+  }
+
+  .section-label {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem;
+    color: #0284C7;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 1.75rem;
+    margin-bottom: 2rem;
+  }
+  .card {
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  body.dark .card {
+    background: rgba(30, 41, 59, 0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  .card-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    min-height: 240px;
+    background: #FFFFFF;
+  }
+  body.dark .card-img {
+    background: #0F172A;
+  }
+  .card-img img {
+    max-width: 180px;
+    max-height: 180px;
+    width: 100%;
+    height: auto;
+  }
+  .card-info {
+    padding: 1.25rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+  }
+  .card-info h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+  .card-info p {
+    font-size: 0.85rem;
+    color: #64748B;
+    line-height: 1.4;
+  }
+
+  .wide-preview {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: #FFFFFF;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  body.dark .wide-preview {
+    background: #0F172A;
+  }
+  .wide-preview img {
+    max-width: 680px;
+    width: 100%;
+  }
+
+  /* Favicon size check strip */
+  .favicon-container {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+  }
+  body.dark .favicon-container {
+    background: rgba(30, 41, 59, 0.5);
+  }
+  .favicon-strip {
+    display: flex;
+    gap: 3rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .fav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .fav-item span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748B;
+  }
+
+  .export-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    margin-bottom: 2rem;
+  }
+  body.dark .export-table {
+    background: rgba(30, 41, 59, 0.5);
+  }
+  .export-table th, .export-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  }
+  .export-table th {
+    background: rgba(2, 132, 199, 0.08);
+    color: #0284C7;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body class="light">
+
+  <div class="header">
+    <div class="title-group">
+      <h1>Istituto MeDiTech SUPSI — Identità Visiva Ufficiale <span class="badge-selected">CONCETTO 1 SELEZIONATO</span></h1>
+      <p>Assistente MeDiTech Mobile • Swiss Precision Clinical Cross & Telemetry Node</p>
+    </div>
+    <button class="toggle" onclick="toggleTheme()">Inverti Tema Chiaro/Scuro</button>
+  </div>
+
+  <div class="section-label">1. Marchio Combinato Master (Lockup Ufficiale)</div>
+  <div class="wide-preview">
+    <img src="export/logo-1024.png" alt="MeDiTech Master Combination Mark">
+  </div>
+
+  <div class="section-label">2. Master App Icon & Favicon Legibility Check</div>
+  <div class="favicon-container">
+    <div class="favicon-strip">
+      <div class="fav-item">
+        <img src="export/icon-128.png" width="128" height="128" alt="128px">
+        <span>128px (Drawer / Tile)</span>
+      </div>
+      <div class="fav-item">
+        <img src="export/icon-64.png" width="64" height="64" alt="64px">
+        <span>64px (Desktop Icon)</span>
+      </div>
+      <div class="fav-item">
+        <img src="export/icon-48.png" width="48" height="48" alt="48px">
+        <span>48px (Notification / Nav)</span>
+      </div>
+      <div class="fav-item">
+        <img src="export/icon-32.png" width="32" height="32" alt="32px">
+        <span>32px (Tab / Favicon @2x)</span>
+      </div>
+      <div class="fav-item">
+        <img src="export/icon-16.png" width="16" height="16" alt="16px">
+        <span>16px (Favicon @1x)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">3. Asset di Produzione Esportati (logos/export/)</div>
+  <table class="export-table">
+    <thead>
+      <tr>
+        <th>Asset File</th>
+        <th>Dimensioni</th>
+        <th>Uso & Destinazione</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>logos/export/icon.svg</code></td>
+        <td>Vettoriale (512x512)</td>
+        <td>Master Vector Icon (Croce Elvetica + ECG)</td>
+      </tr>
+      <tr>
+        <td><code>logos/export/logo.svg</code></td>
+        <td>Vettoriale (1024x512)</td>
+        <td>Master Combination Mark orizzontale</td>
+      </tr>
+      <tr>
+        <td><code>logos/export/icon-{16..2048}.png</code></td>
+        <td>16, 32, 48, 64, 128, 192, 512, 1024, 2048 px</td>
+        <td>Icone raster universali, favicons, store e avatar</td>
+      </tr>
+      <tr>
+        <td><code>logos/export/logo-{512..2048}.png</code></td>
+        <td>512, 1024, 2048 px</td>
+        <td>Banner, intestazioni report clinici e presentazioni</td>
+      </tr>
+      <tr>
+        <td><code>app/src/main/res/mipmap-*/ic_launcher*.png</code></td>
+        <td>mdpi (48), hdpi (72), xhdpi (96), xxhdpi (144), xxxhdpi (192)</td>
+        <td>Icona launcher Android per tutte le densità di schermo</td>
+      </tr>
+      <tr>
+        <td><code>app/src/main/res/drawable/meditech_avatar.png</code></td>
+        <td>512x512 px</td>
+        <td>Avatar dell'assistente AI clinico in-app</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script>
+    function toggleTheme() {
+      const b = document.body;
+      if (b.classList.contains('light')) {
+        b.classList.remove('light');
+        b.classList.add('dark');
+      } else {
+        b.classList.remove('dark');
+        b.classList.add('light');
+      }
+    }
+  </script>
+</body>
+</html>

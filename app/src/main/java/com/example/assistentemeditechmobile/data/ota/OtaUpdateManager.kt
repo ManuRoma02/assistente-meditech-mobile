@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -15,6 +16,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import kotlin.coroutines.coroutineContext
 
 class OtaUpdateManager(private val context: Context) {
 
@@ -23,6 +25,15 @@ class OtaUpdateManager(private val context: Context) {
         const val FALLBACK_MANIFEST_URL = "https://raw.githubusercontent.com/ManuRoma02/assistente-meditech-mobile/master/ota-update.json"
         private const val CONNECT_TIMEOUT_MS = 15_000
         private const val READ_TIMEOUT_MS = 30_000
+
+        /**
+         * Risolve in modo robusto redirect assoluti e relativi (RFC 7231 / AWS S3 redirects).
+         */
+        fun resolveRedirectUrl(baseUrl: String, locationHeader: String): String {
+            return runCatching {
+                URL(URL(baseUrl), locationHeader).toString()
+            }.getOrDefault(locationHeader)
+        }
 
         /**
          * Calcola l'hash crittografico SHA-256 in esadecimale minuscolo per un file (CWE-494).
@@ -48,19 +59,109 @@ class OtaUpdateManager(private val context: Context) {
 
         /**
          * Valuta lo stato dell'aggiornamento a partire dal manifest e dalla versione locale.
+         * Se [alwaysAvailable] è true, l'aggiornamento è considerato sempre disponibile (utile per forzare reinstallazione).
          */
         fun evaluateUpdate(
             manifest: OtaUpdateManifest,
             currentVersionCode: Int,
-            currentVersionName: String
+            currentVersionName: String,
+            alwaysAvailable: Boolean = false
         ): UpdateCheckResult {
-            val available = isUpdateAvailable(manifest, currentVersionCode)
+            val available = alwaysAvailable || isUpdateAvailable(manifest, currentVersionCode)
             return UpdateCheckResult(
                 status = if (available) UpdateCheckStatus.UPDATE_AVAILABLE else UpdateCheckStatus.UP_TO_DATE,
                 manifest = manifest,
                 currentVersionCode = currentVersionCode,
                 currentVersionName = currentVersionName
             )
+        }
+
+        /**
+         * Verifica l'integrità strutturale, la firma e la coerenza del pacchetto APK scaricato.
+         */
+        fun verifyApkArchive(
+            context: Context,
+            apkFile: File,
+            targetVersionCode: Int = 0,
+            expectedSha256: String = "",
+            allowAnyVersion: Boolean = true
+        ): Result<Unit> {
+            if (!apkFile.exists() || apkFile.length() == 0L) {
+                return Result.failure(IllegalStateException("File APK inesistente o vuoto"))
+            }
+
+            // 1. Verifica crittografica SHA-256 se fornita nel manifest
+            if (expectedSha256.isNotBlank()) {
+                val computedHash = computeSha256(apkFile)
+                if (!computedHash.equals(expectedSha256.trim(), ignoreCase = true)) {
+                    return Result.failure(
+                        SecurityException("Integrità SHA-256 fallita: atteso $expectedSha256, calcolato $computedHash")
+                    )
+                }
+            }
+
+            // 2. Verifica parsing pacchetto Android nativo (evita 'Errore di analisi pacchetto')
+            val pm = try { context.packageManager } catch (_: Throwable) { null }
+            if (pm != null) {
+                val archiveInfo = pm.getPackageArchiveInfo(apkFile.absolutePath, 0)
+                    ?: return Result.failure(IllegalStateException("Il file scaricato non è un pacchetto Android valido (APK corrotto)"))
+
+                if (archiveInfo.packageName != context.packageName) {
+                    return Result.failure(
+                        SecurityException("Package APK non corrispondente: ${archiveInfo.packageName} (atteso: ${context.packageName})")
+                    )
+                }
+
+                val apkVersionCode = PackageInfoCompat.getLongVersionCode(archiveInfo).toInt()
+                if (!allowAnyVersion && targetVersionCode > 0 && apkVersionCode < targetVersionCode) {
+                    return Result.failure(
+                        IllegalStateException("Versione APK inferiore al target richiesto: build $apkVersionCode < $targetVersionCode")
+                    )
+                }
+            }
+
+            return Result.success(Unit)
+        }
+    }
+
+    /**
+     * Recupera un APK già scaricato in precedenza se presente nella cache ed integro.
+     */
+    fun getExistingDownloadedApk(
+        targetVersionCode: Int,
+        expectedSha256: String = "",
+        allowAnyVersion: Boolean = true
+    ): File? {
+        val updatesDir = File(context.cacheDir, "updates")
+        if (!updatesDir.exists()) return null
+        val candidates = updatesDir.listFiles { f ->
+            f.isFile && f.name.startsWith("meditech_update_${targetVersionCode}_") && f.name.endsWith(".apk")
+        } ?: return null
+        for (candidate in candidates.sortedByDescending { it.lastModified() }) {
+            if (verifyApkArchive(context, candidate, targetVersionCode, expectedSha256, allowAnyVersion).isSuccess) {
+                return candidate
+            }
+        }
+        return null
+    }
+
+    /**
+     * Rimuove file temporanei .tmp residui e pacchetti APK obsoleti per liberare storage.
+     */
+    fun cleanupOldUpdates(keepOnlyLatestVersionCode: Int? = null) {
+        val updatesDir = File(context.cacheDir, "updates")
+        if (!updatesDir.exists()) return
+        val files = updatesDir.listFiles() ?: return
+        for (f in files) {
+            if (f.name.endsWith(".tmp")) {
+                f.delete()
+                continue
+            }
+            if (f.name.endsWith(".apk") && keepOnlyLatestVersionCode != null) {
+                if (!f.name.startsWith("meditech_update_${keepOnlyLatestVersionCode}_")) {
+                    f.delete()
+                }
+            }
         }
     }
 
@@ -115,7 +216,7 @@ class OtaUpdateManager(private val context: Context) {
                     val newLocation = connection.getHeaderField("Location")
                     connection.disconnect()
                     if (newLocation != null) {
-                        currentUrl = newLocation
+                        currentUrl = resolveRedirectUrl(currentUrl, newLocation)
                         redirects++
                         continue
                     }
@@ -138,18 +239,19 @@ class OtaUpdateManager(private val context: Context) {
 
     /**
      * Controlla se è presente una nuova versione comparando con il codice versione locale.
+     * Se [force] è true, forza lo stato UPDATE_AVAILABLE consentendo all'utente di reinstallare o aggiornare.
      */
     suspend fun checkForUpdate(
         manifestUrl: String = DEFAULT_MANIFEST_URL,
         explicitCurrentVersionCode: Int? = null,
-        explicitCurrentVersionName: String? = null
+        explicitCurrentVersionName: String? = null,
+        force: Boolean = false
     ): UpdateCheckResult = withContext(Dispatchers.IO) {
         val currentCode = explicitCurrentVersionCode ?: getCurrentVersionCode()
         val currentName = explicitCurrentVersionName ?: getCurrentVersionName()
 
         var manifestResult = fetchRemoteManifest(manifestUrl)
         if (manifestResult.isFailure && manifestUrl == DEFAULT_MANIFEST_URL) {
-            // Prova fallback sul branch master se main ha delay di propagazione CDN
             manifestResult = fetchRemoteManifest(FALLBACK_MANIFEST_URL)
         }
 
@@ -163,7 +265,7 @@ class OtaUpdateManager(private val context: Context) {
         }
 
         val manifest = manifestResult.getOrThrow()
-        evaluateUpdate(manifest, currentCode, currentName)
+        evaluateUpdate(manifest, currentCode, currentName, alwaysAvailable = force)
     }
 
     /**
@@ -176,16 +278,16 @@ class OtaUpdateManager(private val context: Context) {
         expectedSha256: String = "",
         onProgress: (progress: Float, downloadedBytes: Long, totalBytes: Long) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
-        runCatching {
+        val updatesDir = File(context.cacheDir, "updates").apply {
+            if (!exists()) mkdirs()
+        }
+        val destinationFile = File(updatesDir, "meditech_update_${targetVersionCode}_${System.currentTimeMillis()}.apk")
+        val tempFile = File(updatesDir, "${destinationFile.name}.tmp")
+
+        try {
             if (!downloadUrl.startsWith("https://", ignoreCase = true)) {
                 error("Protocollo non sicuro: il download degli aggiornamenti richiede obbligatoriamente HTTPS.")
             }
-
-            val updatesDir = File(context.cacheDir, "updates").apply {
-                if (!exists()) mkdirs()
-            }
-            val destinationFile = File(updatesDir, "meditech_update_${targetVersionCode}_${System.currentTimeMillis()}.apk")
-            val tempFile = File(updatesDir, "${destinationFile.name}.tmp")
 
             var currentUrl = downloadUrl
             var connection: HttpURLConnection? = null
@@ -194,7 +296,7 @@ class OtaUpdateManager(private val context: Context) {
 
             while (redirects < maxRedirects) {
                 if (!currentUrl.startsWith("https://", ignoreCase = true)) {
-                    error("Reindirizzamento verso endpoint HTTP non cifrato intercettato e bloccato.")
+                    error("Reindirizzamento verso endpoint HTTP non cifrato bloccato per sicurezza.")
                 }
                 val url = URL(currentUrl)
                 connection = (url.openConnection() as HttpURLConnection).apply {
@@ -215,7 +317,7 @@ class OtaUpdateManager(private val context: Context) {
                     val newLocation = connection.getHeaderField("Location")
                     connection.disconnect()
                     if (newLocation != null) {
-                        currentUrl = newLocation
+                        currentUrl = resolveRedirectUrl(currentUrl, newLocation)
                         redirects++
                         continue
                     }
@@ -225,7 +327,7 @@ class OtaUpdateManager(private val context: Context) {
 
             val conn = connection ?: error("Connessione non inizializzata")
             if (conn.responseCode !in 200..299) {
-                error("Errore download APK: HTTP ${conn.responseCode}")
+                error("Errore download APK: HTTP ${conn.responseCode} ${conn.responseMessage}")
             }
 
             val totalBytes = conn.contentLength.toLong()
@@ -239,6 +341,7 @@ class OtaUpdateManager(private val context: Context) {
                     var lastNotifiedBytes = 0L
 
                     while (input.read(buffer).also { bytesRead = it } != -1) {
+                        coroutineContext.ensureActive()
                         output.write(buffer, 0, bytesRead)
                         downloadedBytes += bytesRead
 
@@ -263,21 +366,25 @@ class OtaUpdateManager(private val context: Context) {
             conn.disconnect()
 
             if (tempFile.exists() && tempFile.length() > 0) {
-                // Verifica integrità crittografica SHA-256 se fornita dal manifest
-                if (expectedSha256.isNotBlank()) {
-                    val actualSha256 = computeSha256(tempFile)
-                    if (!actualSha256.equals(expectedSha256.trim(), ignoreCase = true)) {
-                        tempFile.delete()
-                        error("Verifica integrità SHA-256 fallita: l'hash del file ($actualSha256) non corrisponde a quello atteso ($expectedSha256).")
-                    }
+                if (destinationFile.exists()) destinationFile.delete()
+                if (!tempFile.renameTo(destinationFile)) {
+                    error("Impossibile rinominare il file temporaneo dell'aggiornamento")
                 }
 
-                if (destinationFile.exists()) destinationFile.delete()
-                tempFile.renameTo(destinationFile)
-                destinationFile
+                // Verifica strutturale, firma e SHA-256
+                val verifyResult = verifyApkArchive(context, destinationFile, targetVersionCode, expectedSha256)
+                if (verifyResult.isFailure) {
+                    destinationFile.delete()
+                    throw verifyResult.exceptionOrNull() ?: IllegalStateException("Verifica integrità APK fallita")
+                }
+
+                Result.success(destinationFile)
             } else {
                 error("Il file scaricato è vuoto o corrotto")
             }
+        } catch (t: Throwable) {
+            if (tempFile.exists()) tempFile.delete()
+            Result.failure(t)
         }
     }
 

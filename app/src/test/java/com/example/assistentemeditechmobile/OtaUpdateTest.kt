@@ -90,6 +90,12 @@ class OtaUpdateTest {
         assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, eval.status)
         assertEquals("1.2.1", eval.manifest?.latestVersionName)
         assertTrue(eval.manifest?.downloadUrl?.endsWith(".apk") == true)
+
+        // Regression check: Once bumped to version 4 (1.2.1), update should be reported as UP_TO_DATE
+        val localVersion4Code = 4
+        val localVersion4Name = "1.2.1"
+        val eval4 = OtaUpdateManager.evaluateUpdate(parsed, localVersion4Code, localVersion4Name)
+        assertEquals(UpdateCheckStatus.UP_TO_DATE, eval4.status)
     }
 
     @Test

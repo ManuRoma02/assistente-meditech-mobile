@@ -119,4 +119,26 @@ class EmailDraftTest {
         assertTrue(draft.contains("regarding your request: I will send the high-res graphs by this evening"))
         assertTrue(draft.contains("Best regards,\nAssistente - SUPSI MeDiTech Institute"))
     }
+
+    @Test
+    fun testGenerateDraftForEnglishEmailFromProfMeystreAddressesInEnglish() {
+        val email = EmailItem(
+            id = "test-en-meystre",
+            accountName = "International Collaborations",
+            sender = "Prof. Stéphane Meystre <stephane.meystre@supsi.ch>",
+            recipient = "utente@supsi.ch",
+            subject = "EU Horizon Clinical Proposal Review",
+            dateStr = "23/10/2026 14:00",
+            bodySnippet = "Dear colleague, please review the Horizon grant draft before our partner meeting.",
+            summary = "Grant draft review request",
+            hasAppointmentProposal = false,
+            language = "en"
+        )
+
+        val draft = MeditechDraftGenerator.generate(email)
+
+        assertTrue("English draft should address Meystre in English, not Italian", draft.contains("Dear Prof. Meystre,"))
+        org.junit.Assert.assertFalse("English draft must not use Italian greeting", draft.contains("Gentile Prof. Meystre,"))
+        assertTrue(draft.contains("Best regards,\nAssistente - SUPSI MeDiTech Institute"))
+    }
 }

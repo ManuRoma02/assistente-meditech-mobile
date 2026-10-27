@@ -3,6 +3,7 @@ package com.example.assistentemeditechmobile.ui
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -21,20 +21,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.assistentemeditechmobile.domain.EmailItem
+import com.example.assistentemeditechmobile.domain.VipContact
 import com.example.assistentemeditechmobile.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Schermata Hub Email Cliniche & Ricerca MeDiTech SUPSI:
+ * - Filtri Apple HIG con contatori dinamici
+ * - Card email ad altissima leggibilità con avatar iniziali, badge VIP e sintesi on-device
+ * - Rilevamento automatico meeting con 1-tap add to calendar
+ * - Bozze di risposta IA rapide con animazione cartoon paper plane
+ */
 @Composable
 fun EmailHubScreen(
     viewModel: MeditechViewModel,
@@ -43,6 +55,7 @@ fun EmailHubScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
     var selectedFilter by remember { mutableStateOf("Tutte") }
@@ -57,6 +70,7 @@ fun EmailHubScreen(
         when (selectedFilter) {
             "VIP SUPSI" -> uiState.emails.filter { it.isVip }
             "Con Meeting" -> uiState.emails.filter { it.hasAppointmentProposal }
+            "Non Lette" -> uiState.emails.filter { !it.isRead }
             else -> uiState.emails
         }
     }
@@ -65,9 +79,9 @@ fun EmailHubScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MeditechBg)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 14.dp)
     ) {
-        // Top Header: Title + Actions (Account Config, Simulate Receive, VIP Manager)
+        // Top Header: Title + Actions (Simulate, Config, VIPs, Briefing)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -78,8 +92,8 @@ fun EmailHubScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "EMAIL CLINICHE & RESEARCH",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.5.sp
                     ),
@@ -91,7 +105,7 @@ fun EmailHubScreen(
                     text = "Caselle di Lavoro",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
+                        fontSize = 21.sp
                     ),
                     color = MeditechTextPrimary,
                     maxLines = 1,
@@ -103,64 +117,83 @@ fun EmailHubScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Simula Arrivo Nuova Email (con animazione e notifica)
+                // Simula Arrivo Nuova Email
                 val syncInteraction = remember { MutableInteractionSource() }
                 IconButton(
-                    onClick = { viewModel.simulateReceiveIncomingEmail() },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.simulateReceiveIncomingEmail()
+                    },
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(36.dp)
                         .background(MeditechCyanSoft, CircleShape)
-                        .emilPressScale(syncInteraction)
+                        .cartoonPressSquash(syncInteraction, pressedScaleY = 0.90f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MarkEmailUnread,
                         contentDescription = "Simula Nuova Email",
                         tint = MeditechCyanDark,
-                        modifier = Modifier.size(19.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
-                // Configurazione Account Email (Apple Style)
+                // Configurazione Account IMAP/Exchange
                 val configInteraction = remember { MutableInteractionSource() }
                 IconButton(
-                    onClick = { viewModel.setEmailConfigSheetVisible(true) },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        viewModel.setEmailConfigSheetVisible(true)
+                    },
                     modifier = Modifier
-                        .size(38.dp)
-                        .background(MeditechCyanSoft, CircleShape)
-                        .emilPressScale(configInteraction)
+                        .size(36.dp)
+                        .background(MeditechGroupedBg, CircleShape)
+                        .cartoonPressSquash(configInteraction, pressedScaleY = 0.90f)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ManageAccounts,
                         contentDescription = "Configura Account Email",
                         tint = MeditechCyanPrimary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
                 // VIP Manager Button
                 val vipInteraction = remember { MutableInteractionSource() }
-                OutlinedButton(
-                    onClick = { showVipDialog = true },
+                Surface(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        showVipDialog = true
+                    },
+                    interactionSource = vipInteraction,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MeditechBorderCyan),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MeditechSurface),
-                    contentPadding = PaddingValues(horizontal = 9.dp, vertical = 6.dp),
-                    modifier = Modifier.emilPressScale(vipInteraction, pressedScale = 0.95f)
+                    color = MeditechCyanSoft,
+                    border = BorderStroke(0.8.dp, MeditechBorderCyan),
+                    modifier = Modifier.cartoonPressSquash(vipInteraction, pressedScaleY = 0.92f)
                 ) {
-                    Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = MeditechCyanPrimary, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "VIP (${uiState.vips.size})",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MeditechCyanDark
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MeditechCyanDark,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "VIP (${uiState.vips.size})",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MeditechCyanDark
+                        )
+                    }
                 }
             }
         }
 
         // Apple Style Segmented Filter Pills
         Surface(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(14.dp),
             color = MeditechGroupedBg,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -172,29 +205,34 @@ fun EmailHubScreen(
             ) {
                 listOf(
                     "Tutte" to "Tutte (${uiState.emails.size})",
-                    "VIP SUPSI" to "VIP SUPSI (${uiState.emails.count { it.isVip }})",
-                    "Con Meeting" to "Con Meeting (${uiState.emails.count { it.hasAppointmentProposal }})"
+                    "VIP SUPSI" to "VIP (${uiState.emails.count { it.isVip }})",
+                    "Con Meeting" to "Meeting (${uiState.emails.count { it.hasAppointmentProposal }})",
+                    "Non Lette" to "Nuove (${uiState.emails.count { !it.isRead }})"
                 ).forEach { (filterKey, filterLabel) ->
                     val isSelected = selectedFilter == filterKey
                     val chipInteraction = remember { MutableInteractionSource() }
 
                     Surface(
-                        onClick = { selectedFilter = filterKey },
-                        shape = RoundedCornerShape(9.dp),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            selectedFilter = filterKey
+                        },
+                        shape = RoundedCornerShape(10.dp),
                         color = if (isSelected) MeditechSurface else Color.Transparent,
+                        border = if (isSelected) BorderStroke(0.6.dp, MeditechBorderCyan) else null,
                         shadowElevation = if (isSelected) 1.5.dp else 0.dp,
                         modifier = Modifier
                             .weight(1f)
-                            .emilPressScale(chipInteraction, pressedScale = 0.95f)
+                            .cartoonPressSquash(chipInteraction, pressedScaleY = 0.94f)
                     ) {
                         Box(
-                            modifier = Modifier.padding(vertical = 6.5.dp),
+                            modifier = Modifier.padding(vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = filterLabel,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.5.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 ),
                                 color = if (isSelected) MeditechCyanDark else MeditechTextSecondary,
@@ -207,34 +245,73 @@ fun EmailHubScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Email Items List
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            items(filteredEmails, key = { it.id }) { email ->
-                EmailCard(
-                    email = email,
-                    isSending = email.id in uiState.sentEmailIds,
-                    onClick = { viewModel.openEmailDetail(email) },
-                    onGenerateDraft = { viewModel.generateReplyDraft(email) },
-                    onSendReply = { viewModel.sendEmailReply(email, email.draftReply) },
-                    onCopyDraft = {
-                        clipboardManager.setText(AnnotatedString(it))
-                        Toast.makeText(context, "Bozza copiata negli appunti", Toast.LENGTH_SHORT).show()
-                    },
-                    onAddToAgenda = {
-                        viewModel.addMeetingFromEmail(
-                            title = email.subject,
-                            slotStr = email.suggestedSlot,
-                            durationMinutes = email.suggestedDurationMinutes,
-                            contact = email.sender.substringBefore('<').trim()
+        // Lista Email o Stato Vuoto
+        if (filteredEmails.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MeditechSurface,
+                    border = BorderStroke(0.8.dp, MeditechBorder),
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MailOutline,
+                            contentDescription = null,
+                            tint = MeditechCyanPrimary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Text(
+                            text = "Nessuna email nel filtro",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MeditechTextPrimary
+                        )
+                        Text(
+                            text = "Tutte le caselle di ricerca SUPSI MeDiTech sono aggiornate.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MeditechTextTertiary
                         )
                     }
-                )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(filteredEmails, key = { it.id }) { email ->
+                    EmailCard(
+                        email = email,
+                        isSending = email.id in uiState.sentEmailIds,
+                        onClick = { viewModel.openEmailDetail(email) },
+                        onGenerateDraft = { viewModel.generateReplyDraft(email) },
+                        onSendReply = { viewModel.sendEmailReply(email, email.draftReply) },
+                        onCopyDraft = {
+                            clipboardManager.setText(AnnotatedString(it))
+                            Toast.makeText(context, "Bozza copiata negli appunti", Toast.LENGTH_SHORT).show()
+                        },
+                        onAddToAgenda = {
+                            viewModel.addMeetingFromEmail(
+                                title = email.subject,
+                                slotStr = email.suggestedSlot,
+                                durationMinutes = email.suggestedDurationMinutes,
+                                contact = email.sender.substringBefore('<').trim()
+                            )
+                        }
+                    )
+                }
             }
         }
     }
@@ -249,139 +326,155 @@ fun EmailHubScreen(
         )
     }
 
-    // Modal Sheet Dettaglio Email & Recap Intelligente
-    uiState.selectedEmailDetail?.let { detailEmail ->
+    // Sheet Dettaglio Email
+    uiState.selectedEmailDetail?.let { email ->
         EmailDetailSheet(
-            email = detailEmail,
-            onAddToAgenda = { title, slotStr, duration, contact ->
-                viewModel.addMeetingFromEmail(title, slotStr, duration, contact)
+            email = email,
+            onAddToAgenda = { title, slotStr, durationMinutes, contact ->
+                viewModel.addMeetingFromEmail(title, slotStr, durationMinutes, contact)
             },
-            onSendDraft = { replyText ->
-                viewModel.sendEmailReply(detailEmail, replyText)
+            onSendDraft = { draft ->
+                viewModel.sendEmailReply(email, draft)
             },
-            onCopyDraft = { replyText ->
-                clipboardManager.setText(AnnotatedString(replyText))
+            onCopyDraft = { draft ->
+                clipboardManager.setText(AnnotatedString(draft))
                 Toast.makeText(context, "Bozza copiata negli appunti", Toast.LENGTH_SHORT).show()
             },
             onDismiss = { viewModel.dismissEmailDetail() }
         )
     }
 
-    // VIP Management Dialog
+    // Dialog Gestione Contatti VIP
     if (showVipDialog) {
         AlertDialog(
             onDismissRequest = { showVipDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = MeditechCyanPrimary)
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = MeditechCyanPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Contatti VIP SUPSI & EOC", fontWeight = FontWeight.Bold, color = MeditechTextPrimary)
+                    Text(
+                        text = "Contatti VIP MeDiTech",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MeditechTextPrimary
+                    )
                 }
             },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "I contatti VIP ricevono priorità immediata, sintesi automatica e notifiche dedicate da Qwen 3.5.",
+                        text = "I mittenti VIP ricevono priorità assoluta, notifiche dedicate e analisi anticipata dell'agenda.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MeditechTextSecondary
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = newVipName,
-                        onValueChange = { newVipName = it },
-                        label = { Text("Nome e Titolo (es. Dr. Rossi)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = newVipEmail,
-                        onValueChange = { newVipEmail = it },
-                        label = { Text("Email o Dominio (@eoc.ch, @supsi.ch)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = newVipRole,
-                        onValueChange = { newVipRole = it },
-                        label = { Text("Ruolo Clinico / Istituzionale") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "VIP ATTIVI (${uiState.vips.size}):",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MeditechCyanDark
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     uiState.vips.forEach { vip ->
-                        Row(
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MeditechGroupedBg,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 3.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(vertical = 3.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = vip.name,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "${vip.emailOrDomain} • ${vip.roleTitle}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MeditechTextTertiary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            IconButton(
-                                onClick = { viewModel.removeVipContact(vip.id) },
-                                modifier = Modifier.size(28.dp)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Rimuovi",
-                                    tint = MeditechUrgentRed,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = vip.name,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MeditechTextPrimary
+                                    )
+                                    Text(
+                                        text = "${vip.emailOrDomain} • ${vip.roleTitle}",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = MeditechTextTertiary
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.removeVipContact(vip.id) },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DeleteOutline,
+                                        contentDescription = "Rimuovi VIP",
+                                        tint = MeditechUrgentRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Aggiungi nuovo VIP:",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MeditechCyanDark
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = newVipName,
+                        onValueChange = { newVipName = it },
+                        placeholder = { Text("Nome (es: Prof. Stéphane Meystre)", fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = newVipEmail,
+                        onValueChange = { newVipEmail = it },
+                        placeholder = { Text("Email o dominio (es: stephane.meystre@supsi.ch)", fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = newVipRole,
+                        onValueChange = { newVipRole = it },
+                        placeholder = { Text("Ruolo (es: Direttore Istituto)", fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         if (newVipName.isNotBlank() && newVipEmail.isNotBlank()) {
-                            viewModel.addVipContact(newVipName, newVipEmail, newVipRole)
+                            viewModel.addVipContact(newVipName, newVipEmail, newVipRole.ifBlank { "Collaboratore Scientifico" })
                             newVipName = ""
                             newVipEmail = ""
                             newVipRole = ""
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Aggiungi VIP")
+                    Text("Salva VIP", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showVipDialog = false }) {
-                    Text("Chiudi", color = MeditechTextTertiary)
+                    Text("Chiudi", color = MeditechTextSecondary)
                 }
-            }
+            },
+            containerColor = MeditechSurface,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
 
+/**
+ * Card Email in stile Apple HIG:
+ * - Avatar con iniziali mittente
+ * - Bordo luminescente per VIP Meystre
+ * - Box Apple Intelligence con sintesi formattata on-device
+ * - Azione rapida Meeting in Agenda
+ */
 @Composable
 fun EmailCard(
     email: EmailItem,
@@ -392,23 +485,41 @@ fun EmailCard(
     onCopyDraft: (String) -> Unit,
     onAddToAgenda: () -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    var isCopied by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
     var isAddedToAgenda by remember { mutableStateOf(false) }
 
     val cardInteraction = remember { MutableInteractionSource() }
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MeditechSurface),
-        border = BorderStroke(1.dp, if (!email.isRead) MeditechCyanPrimary else MeditechBorder),
+    // Iniziali mittente per avatar
+    val initials = remember(email.sender) {
+        val clean = email.sender.substringBefore('<').trim()
+        val parts = clean.split(' ').filter { it.isNotBlank() }
+        if (parts.size >= 2) {
+            "${parts[0].firstOrNull() ?: ' '}${parts[1].firstOrNull() ?: ' '}".uppercase()
+        } else {
+            clean.take(2).uppercase()
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MeditechSurface,
+        border = if (email.isVip) {
+            BorderStroke(1.2.dp, Brush.horizontalGradient(listOf(MeditechCyanPrimary, VipMeystreGlow)))
+        } else if (!email.isRead) {
+            BorderStroke(1.dp, MeditechCyanPrimary)
+        } else {
+            BorderStroke(0.8.dp, MeditechBorder)
+        },
+        shadowElevation = if (!email.isRead || email.isVip) 2.dp else 0.5.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .emilPressScale(cardInteraction, pressedScale = 0.985f)
+            .cartoonPaperPlane(isSending)
+            .cartoonPressSquash(cardInteraction, pressedScaleY = 0.985f)
             .clickable(interactionSource = cardInteraction, indication = null, onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Header Row: Unread Dot + Sender + Date
+            // Header Row: Avatar Iniziali + Mittente + Data
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -416,78 +527,99 @@ fun EmailCard(
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
-                    if (!email.isRead) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(MeditechCyanPrimary, CircleShape)
+                    // Avatar Iniziali
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (email.isVip) Brush.linearGradient(listOf(MeditechCyanPrimary, MeditechCyanDark))
+                                else Brush.linearGradient(listOf(MeditechGroupedBg, MeditechBorder))
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = initials,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            ),
+                            color = if (email.isVip) Color.White else MeditechTextPrimary
                         )
-                        Spacer(modifier = Modifier.width(7.dp))
                     }
 
-                    Text(
-                        text = email.sender.substringBefore('<').trim(),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MeditechTextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    if (email.isVip) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            shape = CircleShape,
-                            color = MeditechCyanSoft
-                        ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(
-                                text = "VIP",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold
+                                text = email.sender.substringBefore('<').trim(),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = if (!email.isRead) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 14.sp
                                 ),
-                                color = MeditechCyanDark,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                color = MeditechTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+
+                            if (email.isVip) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MeditechCyanSoft
+                                ) {
+                                    Text(
+                                        text = "VIP SUPSI",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = MeditechCyanDark,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
                         }
-                    }
 
-                    if (email.language == "en") {
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFF1F5F9)
-                        ) {
-                            Text(
-                                text = "EN",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color(0xFF475569),
-                                modifier = Modifier.padding(horizontal = 4.5.dp, vertical = 1.dp)
-                            )
+                        if (!email.isRead) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(MeditechCyanPrimary)
+                                )
+                                Text(
+                                    text = "Non Letta",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MeditechCyanPrimary
+                                )
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
                 Text(
                     text = email.dateStr,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MeditechTextTertiary,
-                    maxLines = 1
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                    color = MeditechTextTertiary
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Subject Line
+            // Oggetto
             Text(
                 text = email.subject,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp
+                ),
                 color = MeditechTextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -495,10 +627,13 @@ fun EmailCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Body Snippet Preview
+            // Snippet Corpo Email
             Text(
                 text = email.bodySnippet,
-                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                ),
                 color = MeditechTextSecondary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -507,12 +642,12 @@ fun EmailCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             // =========================================================================
-            // APPLE INTELLIGENCE RECAP BOX (In-Card Highlight)
+            // BOX INTELLIGENCE ON-DEVICE ME-DITECH (Sintesi Formattata)
             // =========================================================================
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MeditechCyanUltraLight,
-                border = BorderStroke(1.dp, MeditechBorderCyan),
+                border = BorderStroke(0.6.dp, MeditechBorderCyan),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
@@ -521,44 +656,44 @@ fun EmailCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
                                 tint = MeditechCyanPrimary,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(13.dp)
                             )
-                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = "Recap Intelligente AI",
+                                text = "Sintesi IA Locale",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = MeditechCyanDark
-                                )
+                                    fontSize = 10.5.sp
+                                ),
+                                color = MeditechCyanDark
                             )
                         }
 
                         Text(
-                            text = "Tocca per dettagli",
+                            text = "Tocca per leggere",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             color = MeditechCyanPrimary
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = formatMeditechMessageText(email.summary, isUser = false),
+                        text = formatInlineMarkdown(email.summary, isUser = false),
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp
+                            fontSize = 12.5.sp,
+                            lineHeight = 17.sp
                         ),
                         color = MeditechTextPrimary,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    // Meeting Quick Add Action if proposed
+                    // Meeting Quick Add Action se proposta presente
                     if (email.hasAppointmentProposal && email.suggestedSlot.isNotBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -568,7 +703,8 @@ fun EmailCard(
                         ) {
                             Row(
                                 modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CalendarMonth,
@@ -576,9 +712,8 @@ fun EmailCard(
                                     tint = MeditechCyanDark,
                                     modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Meeting: ${email.suggestedSlot}",
+                                    text = "Slot: ${email.suggestedSlot}",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold
@@ -593,29 +728,34 @@ fun EmailCard(
                             Surface(
                                 onClick = {
                                     if (!isAddedToAgenda) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onAddToAgenda()
                                         isAddedToAgenda = true
                                     }
                                 },
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isAddedToAgenda) MeditechTealSoft else MeditechCyanSoft,
-                                modifier = Modifier.emilPressScale(agendaInteraction, pressedScale = 0.95f)
+                                border = BorderStroke(
+                                    0.6.dp,
+                                    if (isAddedToAgenda) MeditechTealActive else MeditechCyanPrimary
+                                ),
+                                modifier = Modifier.cartoonPressSquash(agendaInteraction, pressedScaleY = 0.90f)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Icon(
                                         imageVector = if (isAddedToAgenda) Icons.Default.Check else Icons.Default.Add,
                                         contentDescription = null,
-                                        tint = if (isAddedToAgenda) MeditechTealActive else MeditechCyanDark,
+                                        tint = if (isAddedToAgenda) MeditechTealActive else MeditechCyanPrimary,
                                         modifier = Modifier.size(12.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(3.dp))
                                     Text(
-                                        text = if (isAddedToAgenda) "Inserito!" else "+ In Agenda",
+                                        text = if (isAddedToAgenda) "In Agenda!" else "Fissa Slot",
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
+                                            fontSize = 10.5.sp,
                                             fontWeight = FontWeight.Bold
                                         ),
                                         color = if (isAddedToAgenda) MeditechTealActive else MeditechCyanDark

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="shield-grad-c3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+    <linearGradient id="beacon-grad-c3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <filter id="shadow-c3" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#0284C7" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect id="bg" width="512" height="512" rx="128" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="3"/>
+
+  <!-- Icon: Protective Health Shield & Clinical Beacon -->
+  <g id="icon" filter="url(#shadow-c3)">
+    <!-- Aerodynamic Clinical Shield Body -->
+    <path fill="url(#shield-grad-c3)" d="
+      M 256 86 
+      C 346 86 408 126 408 214 
+      C 408 322 308 398 256 426 
+      C 204 398 104 322 104 214 
+      C 104 126 166 86 256 86 Z
+    "/>
+
+    <!-- Inner Luminous Swiss Medical Cross -->
+    <path fill="url(#beacon-grad-c3)" d="
+      M 234 162 C 234 153 241 146 250 146 L 262 146 C 271 146 278 153 278 162 L 278 214 L 330 214 C 339 214 346 221 346 230 L 346 242 C 346 251 339 258 330 258 L 278 258 L 278 310 C 278 319 271 326 262 326 L 250 326 C 241 326 234 319 234 310 L 234 258 L 182 258 C 173 258 166 251 166 242 L 166 230 C 166 221 173 214 182 214 L 234 214 Z
+    "/>
+
+    <!-- Precision AI Satellite Ring -->
+    <circle cx="256" cy="236" r="68" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="6 6" opacity="0.6"/>
+  </g>
+</svg>

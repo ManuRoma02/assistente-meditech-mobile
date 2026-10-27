@@ -97,7 +97,12 @@ class EmailRepository(
 
     suspend fun getEmails(): List<EmailItem> = withContext(Dispatchers.IO) {
         mutex.withLock {
-            getEmailsInternal()
+            val emails = getEmailsInternal()
+            val vips = runCatching { vipRepository.getVips() }.getOrDefault(emptyList())
+            emails.map { email ->
+                val isVipMatched = com.example.assistentemeditechmobile.domain.VipMatcher.isVip(email.sender, email.subject, vips)
+                if (email.isVip != isVipMatched) email.copy(isVip = isVipMatched) else email
+            }
         }
     }
 
@@ -150,20 +155,25 @@ class EmailRepository(
     }
 
     suspend fun simulateIncomingEmail(): EmailItem = withContext(Dispatchers.IO) {
+        val vips = runCatching { vipRepository.getVips() }.getOrDefault(emptyList())
+        val sender = "Dr. Luca Bernasconi <luca.bernasconi@cardiocentro.org>"
+        val subject = "Richiesta Urgente: Valutazione Tracciati ECG con Algoritmo AI"
+        val isSenderVip = com.example.assistentemeditechmobile.domain.VipMatcher.isVip(sender, subject, vips)
+
         mutex.withLock {
             val nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
             val newMail = EmailItem(
                 id = "em-" + UUID.randomUUID().toString().take(6),
                 accountName = cachedConfig?.provider ?: "SUPSI MeDiTech",
-                sender = "Dr. Luca Bernasconi <luca.bernasconi@cardiocentro.org>",
+                sender = sender,
                 recipient = cachedConfig?.emailAddress ?: "utente@supsi.ch",
-                subject = "Richiesta Urgente: Valutazione Tracciati ECG con Algoritmo AI",
+                subject = subject,
                 dateStr = nowStr,
                 bodySnippet = "Gentile collega, abbiamo un lotto di tracciati complessi da validare con il modello neurale. Riusciamo a fare un punto rapido oggi alle 16:30 o domani alle 09:30? Ti allego l'estratto anonimizzato.",
                 summary = "Il Dr. Luca Bernasconi (Cardiocentro) richiede una valutazione urgente di tracciati ECG e propone un incontro oggi alle 16:30 o domani alle 09:30.",
                 language = "it",
                 isImportant = true,
-                isVip = true,
+                isVip = isSenderVip,
                 hasAppointmentProposal = true,
                 suggestedSlot = "Oggi alle 16:30",
                 suggestedDurationMinutes = 45,

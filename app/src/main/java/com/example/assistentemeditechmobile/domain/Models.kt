@@ -124,5 +124,6 @@ data class ChatMessage(
     val timestampMillis: Long = System.currentTimeMillis(),
     val isReasoning: Boolean = false,
     val appointmentProposal: AppointmentParseResult? = null,
+    val createdEvent: CalendarEventItem? = null,
     val emailDraftProposal: String? = null
 )

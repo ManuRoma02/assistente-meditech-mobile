@@ -22,11 +22,15 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
 import java.util.UUID
 
-class CalendarRepository(private val context: Context) {
+class CalendarRepository(
+    private val context: Context? = null,
+    private val overrideEventsFile: File? = null
+) {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -36,13 +40,14 @@ class CalendarRepository(private val context: Context) {
     private val mutex = Mutex()
     private var cachedEvents: List<CalendarEventItem>? = null
     private val eventsFile: File
-        get() = File(context.filesDir, "meditech_calendar_events.json")
+        get() = overrideEventsFile ?: File(context?.filesDir, "meditech_calendar_events.json")
 
     private val isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
     fun hasCalendarPermissions(): Boolean {
-        val read = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
-        val write = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        val ctx = context ?: return false
+        val read = ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        val write = ContextCompat.checkSelfPermission(ctx, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
         return read && write
     }
 
@@ -84,7 +89,11 @@ class CalendarRepository(private val context: Context) {
      * - 2 hours before (120 min)
      * - 1 hour before (60 min)
      */
-    suspend fun createEvent(proposed: AppointmentParseResult): CalendarEventItem = withContext(Dispatchers.IO) {
+    suspend fun createEvent(
+        proposed: AppointmentParseResult,
+        bufferMinutes: Long = 10L,
+        autoCreateMeet: Boolean = true
+    ): CalendarEventItem = withContext(Dispatchers.IO) {
         val zone = ZoneId.systemDefault()
         val startDt = proposed.data_inizio_iso?.let {
             runCatching { LocalDateTime.parse(it.take(19)) }.getOrNull()
@@ -101,8 +110,14 @@ class CalendarRepository(private val context: Context) {
         val isOnlineMeeting = proposed.is_online || listOf("meet", "call", "online", "zoom", "teams", "remoto")
             .any { proposed.luogo.lowercase().contains(it) || proposed.title.lowercase().contains(it) }
 
-        val hangoutLink = if (isOnlineMeeting) {
+        val hangoutLink = if (isOnlineMeeting && autoCreateMeet) {
             "https://meet.google.com/meditech-${UUID.randomUUID().toString().take(6)}"
+        } else ""
+
+        val conflicts = checkConflicts(proposed, bufferMinutes)
+        val hasConflict = conflicts.isNotEmpty()
+        val conflictDetails = if (hasConflict) {
+            "Conflitto rilevato con: ${conflicts.joinToString { it.title }}"
         } else ""
 
         var systemEventId = ""
@@ -127,6 +142,8 @@ class CalendarRepository(private val context: Context) {
             contact = proposed.contatto,
             isOnline = isOnlineMeeting,
             hangoutLink = hangoutLink,
+            hasConflict = hasConflict,
+            conflictDetails = conflictDetails,
             status = "CONFIRMED",
             startMillis = startMillis,
             endMillis = endMillis
@@ -173,7 +190,7 @@ class CalendarRepository(private val context: Context) {
         if (hasCalendarPermissions() && eventId.toLongOrNull() != null) {
             runCatching {
                 val deleteUri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId.toLong())
-                context.contentResolver.delete(deleteUri, null, null)
+                context?.contentResolver?.delete(deleteUri, null, null)
             }
         }
         mutex.withLock {
@@ -217,6 +234,7 @@ class CalendarRepository(private val context: Context) {
         endMillis: Long,
         hangoutLink: String
     ): String {
+        val ctx = context ?: return ""
         val calId = getDefaultCalendarId() ?: return ""
         val values = ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calId)
@@ -228,7 +246,7 @@ class CalendarRepository(private val context: Context) {
             put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
             put(CalendarContract.Events.HAS_ALARM, 1)
         }
-        val uri = runCatching { context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values) }.getOrNull()
+        val uri = runCatching { ctx.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values) }.getOrNull()
         val eventId = uri?.lastPathSegment ?: ""
 
         if (eventId.isNotBlank()) {
@@ -239,45 +257,54 @@ class CalendarRepository(private val context: Context) {
                     put(CalendarContract.Reminders.METHOD, CalendarContract.Reminders.METHOD_ALERT)
                     put(CalendarContract.Reminders.MINUTES, m)
                 }
-                runCatching { context.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, rValues) }
+                runCatching { ctx.contentResolver.insert(CalendarContract.Reminders.CONTENT_URI, rValues) }
             }
         }
         return eventId
     }
 
     private fun getDefaultCalendarId(): Long? {
-        val projection = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.IS_PRIMARY)
+        val ctx = context ?: return null
+        val projection = arrayOf(
+            CalendarContract.Calendars._ID,
+            CalendarContract.Calendars.IS_PRIMARY,
+            CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL
+        )
         val cursor = runCatching {
-            context.contentResolver.query(CalendarContract.Calendars.CONTENT_URI, projection, null, null, null)
+            ctx.contentResolver.query(CalendarContract.Calendars.CONTENT_URI, projection, null, null, null)
         }.getOrNull() ?: return null
 
-        cursor.use { c ->
-            var fallbackId: Long? = null
-            while (c.moveToNext()) {
-                val id = c.getLong(0)
-                val isPrimary = c.getInt(1) == 1
-                if (isPrimary) return id
-                if (fallbackId == null) fallbackId = id
+        return cursor.use { c ->
+            val candidates = sequence {
+                while (c.moveToNext()) {
+                    val id = c.getLong(0)
+                    val isPrimary = c.getInt(1) == 1
+                    val accessLevel = c.getInt(2)
+                    yield(CalendarCandidate(id, isPrimary, accessLevel))
+                }
             }
-            return fallbackId
+            resolveWritableCalendarId(candidates, targetId = null)
         }
     }
 
     private fun querySystemCalendar(startMillis: Long, endMillis: Long): List<CalendarEventItem> {
+        val ctx = context ?: return emptyList()
         val projection = arrayOf(
             CalendarContract.Events._ID,
             CalendarContract.Events.TITLE,
             CalendarContract.Events.DTSTART,
             CalendarContract.Events.DTEND,
             CalendarContract.Events.EVENT_LOCATION,
-            CalendarContract.Events.DESCRIPTION
+            CalendarContract.Events.DESCRIPTION,
+            CalendarContract.Events.ALL_DAY,
+            CalendarContract.Events.EVENT_TIMEZONE,
+            CalendarContract.Events.DURATION
         )
-        val selection = "(${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?) OR " +
-                "(${CalendarContract.Events.DTEND} >= ? AND ${CalendarContract.Events.DTEND} <= ?)"
-        val args = arrayOf(startMillis.toString(), endMillis.toString(), startMillis.toString(), endMillis.toString())
+        val selection = "${CalendarContract.Events.DTSTART} < ? AND (${CalendarContract.Events.DTEND} > ? OR ${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} = 0)"
+        val args = arrayOf(endMillis.toString(), startMillis.toString())
 
         val cursor = runCatching {
-            context.contentResolver.query(CalendarContract.Events.CONTENT_URI, projection, selection, args, null)
+            ctx.contentResolver.query(CalendarContract.Events.CONTENT_URI, projection, selection, args, null)
         }.getOrNull() ?: return emptyList()
 
         val results = mutableListOf<CalendarEventItem>()
@@ -286,34 +313,107 @@ class CalendarRepository(private val context: Context) {
             while (c.moveToNext()) {
                 val id = c.getLong(0).toString()
                 val title = c.getString(1) ?: "(Impegno senza titolo)"
-                val sMillis = c.getLong(2)
-                val eMillis = c.getLong(3).takeIf { it > sMillis } ?: (sMillis + 3600000L)
+                val rawStart = c.getLong(2)
+                val rawEnd = c.getLong(3)
                 val loc = c.getString(4) ?: ""
                 val desc = c.getString(5) ?: ""
+                val isAllDay = c.getInt(6) == 1
+                val durationStr = c.getString(8)
 
-                val startDt = LocalDateTime.ofInstant(Instant.ofEpochMilli(sMillis), zone)
-                val endDt = LocalDateTime.ofInstant(Instant.ofEpochMilli(eMillis), zone)
-                val duration = ((eMillis - sMillis) / 60000L).toInt().coerceAtLeast(15)
+                val (sMillis, eMillis) = normalizeCalendarEventTimes(rawStart, rawEnd, isAllDay, durationStr, zone)
 
-                results.add(
-                    CalendarEventItem(
-                        id = id,
-                        title = title,
-                        startIso = startDt.format(isoFormatter),
-                        endIso = endDt.format(isoFormatter),
-                        durationMinutes = duration,
-                        location = loc,
-                        contact = desc,
-                        isOnline = loc.lowercase().contains("meet") || desc.lowercase().contains("meet"),
-                        hangoutLink = if (desc.contains("meet.google.com")) "https://meet.google.com" else "",
-                        status = "CONFIRMED",
-                        startMillis = sMillis,
-                        endMillis = eMillis
+                // Rigorosa semantica semi-aperta [startMillis, endMillis)
+                if (eMillis > startMillis && sMillis < endMillis) {
+                    val startDt = LocalDateTime.ofInstant(Instant.ofEpochMilli(sMillis), zone)
+                    val endDt = LocalDateTime.ofInstant(Instant.ofEpochMilli(eMillis), zone)
+                    val duration = ((eMillis - sMillis) / 60000L).toInt().coerceAtLeast(15)
+
+                    results.add(
+                        CalendarEventItem(
+                            id = id,
+                            title = title,
+                            startIso = startDt.format(isoFormatter),
+                            endIso = endDt.format(isoFormatter),
+                            durationMinutes = duration,
+                            location = loc,
+                            contact = desc,
+                            isOnline = loc.lowercase().contains("meet") || desc.lowercase().contains("meet"),
+                            hangoutLink = if (desc.contains("meet.google.com")) "https://meet.google.com" else "",
+                            status = "CONFIRMED",
+                            startMillis = sMillis,
+                            endMillis = eMillis
+                        )
                     )
-                )
+                }
             }
         }
         return results
+    }
+
+    companion object {
+        data class CalendarCandidate(
+            val id: Long,
+            val isPrimary: Boolean,
+            val accessLevel: Int
+        )
+
+        fun resolveWritableCalendarId(
+            candidates: Sequence<CalendarCandidate>,
+            targetId: Long?,
+            minAccessLevel: Int = CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR
+        ): Long? {
+            var primaryId: Long? = null
+            var firstWritableId: Long? = null
+            var matchedSelectedId: Long? = null
+            for (candidate in candidates) {
+                if (candidate.accessLevel >= minAccessLevel) {
+                    if (targetId != null && candidate.id == targetId) {
+                        matchedSelectedId = candidate.id
+                        break
+                    }
+                    if (candidate.isPrimary && primaryId == null) {
+                        primaryId = candidate.id
+                    }
+                    if (firstWritableId == null) {
+                        firstWritableId = candidate.id
+                    }
+                }
+            }
+            return matchedSelectedId ?: primaryId ?: firstWritableId
+        }
+
+        fun normalizeCalendarEventTimes(
+            rawStart: Long,
+            rawEnd: Long,
+            isAllDay: Boolean,
+            durationStr: String? = null,
+            zone: ZoneId = ZoneId.systemDefault()
+        ): Pair<Long, Long> {
+            if (isAllDay) {
+                val utcDate = Instant.ofEpochMilli(rawStart).atZone(ZoneOffset.UTC).toLocalDate()
+                val utcEndDate = if (rawEnd > rawStart) {
+                    Instant.ofEpochMilli(rawEnd).atZone(ZoneOffset.UTC).toLocalDate()
+                } else {
+                    utcDate.plusDays(1)
+                }
+                val localStart = utcDate.atStartOfDay(zone).toInstant().toEpochMilli()
+                val localEnd = utcEndDate.atStartOfDay(zone).toInstant().toEpochMilli()
+                return Pair(localStart, localEnd)
+            } else {
+                val start = rawStart
+                val end = if (rawEnd > rawStart) {
+                    rawEnd
+                } else if (!durationStr.isNullOrBlank()) {
+                    val parsedDurationMs = runCatching {
+                        java.time.Duration.parse(durationStr).toMillis()
+                    }.getOrNull() ?: 3_600_000L
+                    start + parsedDurationMs
+                } else {
+                    start + 3_600_000L
+                }
+                return Pair(start, end)
+            }
+        }
     }
 
     private fun getEventsInternal(): List<CalendarEventItem> {

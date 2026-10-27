@@ -107,40 +107,13 @@ class OnDeviceLocalAiClient {
         options: OnDeviceGenerationOptions = OnDeviceGenerationOptions.EMAIL_DRAFT
     ): Result<String> = withContext(Dispatchers.Default) {
         runCatching {
-            val detectedEnglish = isEnglishEmail ||
-                    Regex("\\b(the|meeting|please|regards|thank|dear|project|hospital|trial|paper|conference)\\b", RegexOption.IGNORE_CASE)
-                        .containsMatchIn("$bodySnippet $subject")
-
-            val senderClean = sender.substringBefore('<').trim().ifBlank {
-                if (detectedEnglish) "Colleague" else "Collega"
-            }
-            val isMeystre = sender.lowercase().contains("meystre")
-
-            if (detectedEnglish) {
-                val greeting = if (isMeystre) "Dear Prof. Meystre," else "Dear $senderClean,"
-                val closing = "Best regards,\nAssistente - SUPSI MeDiTech Institute"
-                val body = when {
-                    userInstruction.isNotBlank() ->
-                        "Thank you for reaching out. Regarding your inquiry: $userInstruction. Please let me know if any further details are required."
-                    bodySnippet.contains("proposal", ignoreCase = true) || subject.contains("meeting", ignoreCase = true) ->
-                        "Thank you for the meeting request. I confirm my availability and have scheduled it in my local agenda."
-                    else ->
-                        "Thank you for your email and the provided updates. Everything is noted, and we are progressing according to our clinical trial timeline."
-                }
-                "$greeting\n\n$body\n\n$closing"
-            } else {
-                val greeting = if (isMeystre) "Gentile Prof. Meystre," else "Gentile $senderClean,"
-                val closing = "Cordiali saluti,\nAssistente - SUPSI Istituto MeDiTech"
-                val body = when {
-                    userInstruction.isNotBlank() ->
-                        "in riferimento alla tua richiesta, $userInstruction. Resto a completa disposizione per eventuali chiarimenti."
-                    bodySnippet.contains("incontro", ignoreCase = true) || subject.contains("appuntamento", ignoreCase = true) ->
-                        "ti confermo la piena disponibilità per l'incontro proposto. Ho inserito l'appuntamento in agenda con il dovuto margine di sicurezza."
-                    else ->
-                        "grazie per la comunicazione e per i dettagli condivisi. Ho registrato le note cliniche nel sistema locale e stiamo procedendo secondo la pianificazione concordata."
-                }
-                "$greeting\n\n$body\n\n$closing"
-            }
+            com.example.assistentemeditechmobile.domain.MeditechDraftGenerator.generate(
+                sender = sender,
+                subject = subject,
+                bodySnippet = bodySnippet,
+                userInstruction = userInstruction,
+                isEnglishEmail = isEnglishEmail
+            )
         }
     }
 

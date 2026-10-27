@@ -19,6 +19,11 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MeditechViewModel by viewModels()
 
+    override fun onStart() {
+        super.onStart()
+        viewModel.refreshEasterEggForAppOpen()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(

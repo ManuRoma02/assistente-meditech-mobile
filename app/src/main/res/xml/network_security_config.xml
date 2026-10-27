@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Eccezioni di traffico in chiaro circoscritte esclusivamente a server LLM e telemetria locale (Ollama / Qwen LAN).
+         MOTIVAZIONE & TRADE-OFF DI SICUREZZA:
+         - Endpoint loopback ed emulatore: localhost, 127.0.0.1, 10.0.2.2.
+         - Dominio mDNS 'local' (.local): necessario per consentire l'accesso a server LLM/dispositivi medici LAN senza TLS
+           (i certificati TLS emessi da CA pubbliche non sono rilasciabili per il TLD riservato RFC 6762 .local).
+         - Rischio circoscritto alla sola LAN: tutto il traffico WAN resta bloccato in chiaro da base-config.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">local</domain>
+    </domain-config>
+</network-security-config>

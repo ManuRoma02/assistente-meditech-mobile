@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <!-- Scoped paths only: prevent root traversal of internal files or external storage -->
-    <files-path name="perizie_archivio" path="Perizie_Archivio/" />
+    <files-path name="meditech_archive" path="meditech_archive/" />
+    <!-- Cache temporanea per foto/allegati clinici -->
+    <cache-path name="camera_cache" path="camera_cache/" />
+    <!-- Cache isolata per il download e installazione pacchetti APK OTA -->
     <cache-path name="updates" path="updates/" />
 </paths>

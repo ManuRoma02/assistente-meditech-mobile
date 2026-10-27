@@ -562,7 +562,7 @@ fun MeditechSettingsSheet(
             val updateInteraction = remember { MutableInteractionSource() }
             OutlinedButton(
                 onClick = {
-                    viewModel.checkForAppUpdate()
+                    viewModel.checkForAppUpdate(force = true)
                 },
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MeditechCyanPrimary),

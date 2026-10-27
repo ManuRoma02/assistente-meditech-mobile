@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="meditech-grad-round" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="60%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+    <linearGradient id="bg-soft-round" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0F9FF"/>
+      <stop offset="100%" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <filter id="subtle-glow-round" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#0284C7" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Circular Background Canvas -->
+  <rect id="bg" width="512" height="512" rx="256" fill="url(#bg-soft-round)" stroke="#BAE6FD" stroke-width="4"/>
+
+  <!-- Icon: Swiss Clinical Cross & Digital Health Node -->
+  <g id="icon" filter="url(#subtle-glow-round)">
+    <!-- Central Swiss Cross with rounded precision geometry -->
+    <path fill="url(#meditech-grad-round)" fill-rule="evenodd" d="
+      M 206 100 C 206 89 215 80 226 80 L 286 80 C 297 80 306 89 306 100 L 306 186 L 392 186 C 403 186 412 195 412 206 L 412 266 C 412 277 403 286 392 286 L 306 286 L 306 372 C 306 383 297 392 286 392 L 226 392 C 215 392 206 383 206 372 L 206 286 L 120 286 C 109 286 100 277 100 266 L 100 206 C 100 195 109 186 120 186 L 206 186 Z
+    "/>
+
+    <!-- Dynamic Clinical Telemetry Pulse Line (Pure White Core) -->
+    <path fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" d="
+      M 130 236 L 200 236 L 226 190 L 256 282 L 286 210 L 312 236 L 382 236
+    "/>
+
+    <!-- Central Bio-Node Sensor dot -->
+    <circle cx="256" cy="236" r="12" fill="#38BDF8" stroke="#FFFFFF" stroke-width="6"/>
+  </g>
+</svg>

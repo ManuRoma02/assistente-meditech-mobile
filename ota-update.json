@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 4,
-  "latestVersionName": "1.2.1",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.2.1/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Configurazione Email**: setup **1-Tap** per SUPSI, EOC e Outlook con test SSL/TLS\n• **Apple Design**: fogli modali a schermo intero e grafica **Liquid Glass** rifinita\n• **Recap Intelligente**: sintesi automatica on-device all'arrivo delle comunicazioni\n• **Agenda Clinica**: sincronizzazione riunioni e allineamento orari **1-Tap**\n• **Responsività**: eliminati a capo anomali e ottimizzata la leggibilità",
+  "latestVersionCode": 8,
+  "latestVersionName": "1.4.1",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.1/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Rivoluzione UI/UX Apple HIG & Stitch Design**: redesign completo di ogni schermata clinica, tipografia ad altissimo contrasto ed estetica svizzera MeDiTech\n• **Rendering Gerarchico Markdown**: architettura a blocchi con titoli zaffiro, elenchi a punti indentati e callout box per avvisi\n• **Generative UI & Card Interattive**: card sotto le bolle per verifica appuntamenti e 1-tap Google Meet / Maps\n• **Bento Grid Ricerca SUPSI**: telemetria attiva con battito cardiaco ECG animato\n• **Aggiornamenti OTA 1-Tap Resilienti**: download con gestione automatica permessi di sistema, verifica SHA-256 e installazione immediata",
   "mandatory": false,
-  "publishedAt": "2026-10-22T10:45:00Z",
-  "sha256": "b15338355240dc8d2fc8d6f742da9e2db68552f27580debd3dd330e32c468efe"
+  "publishedAt": "2026-10-27T11:40:00Z",
+  "sha256": "bc56a8532f460b46313a58f76283a3a5a5324ff54ed2558bd83d15353b5e8183"
 }

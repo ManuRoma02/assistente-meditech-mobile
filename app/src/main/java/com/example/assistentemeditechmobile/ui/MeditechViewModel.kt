@@ -1,6 +1,7 @@
 package com.example.assistentemeditechmobile.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.assistentemeditechmobile.data.CalendarRepository
@@ -16,11 +17,13 @@ import com.example.assistentemeditechmobile.domain.ClinicalProject
 import com.example.assistentemeditechmobile.domain.EmailAccountConfig
 import com.example.assistentemeditechmobile.domain.EmailItem
 import com.example.assistentemeditechmobile.domain.MeditechAiEngine
+import com.example.assistentemeditechmobile.domain.MeditechEasterEggs
 import com.example.assistentemeditechmobile.domain.MeditechTab
 import com.example.assistentemeditechmobile.domain.VipContact
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -58,7 +61,8 @@ data class MeditechUiState(
     val showSettingsDialog: Boolean = false,
     val isClearingChat: Boolean = false,
     val deletingEventIds: Set<String> = emptySet(),
-    val sentEmailIds: Set<String> = emptySet()
+    val sentEmailIds: Set<String> = emptySet(),
+    val easterEggMessage: String? = null
 )
 
 class MeditechViewModel(application: Application) : AndroidViewModel(application) {
@@ -73,12 +77,30 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
     val onDeviceAiClient = OnDeviceLocalAiClient()
     val otaUpdateManager = com.example.assistentemeditechmobile.data.ota.OtaUpdateManager(context)
 
+    private val easterEggPreferences = context.getSharedPreferences("meditech_easter_eggs", Context.MODE_PRIVATE)
+    private val lastEasterEggIndexKey = "last_message_index"
+
     private val _uiState = MutableStateFlow(MeditechUiState())
     val uiState: StateFlow<MeditechUiState> = _uiState.asStateFlow()
 
     init {
         loadInitialData()
         checkForAppUpdate()
+    }
+
+    fun refreshEasterEggForAppOpen() {
+        val messages = MeditechEasterEggs.messages
+        if (messages.isEmpty()) return
+
+        val previousIndex = easterEggPreferences.getInt(lastEasterEggIndexKey, -1)
+        val candidates = messages.indices.filter { it != previousIndex }.ifEmpty { messages.indices.toList() }
+        val nextIndex = candidates.random()
+        easterEggPreferences.edit().putInt(lastEasterEggIndexKey, nextIndex).apply()
+        _uiState.update { it.copy(easterEggMessage = messages[nextIndex]) }
+    }
+
+    fun dismissEasterEgg() {
+        _uiState.update { it.copy(easterEggMessage = null) }
     }
 
     fun selectTab(tab: MeditechTab) {
@@ -138,28 +160,23 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
 
     fun addMeetingFromEmail(title: String, slotStr: String, durationMinutes: Int, contact: String) {
         viewModelScope.launch {
-            val zone = ZoneId.systemDefault()
-            val now = LocalDateTime.now().plusDays(1).withHour(14).withMinute(0).withSecond(0).withNano(0)
-            val end = now.plusMinutes(durationMinutes.toLong())
-            val startMillis = now.atZone(zone).toInstant().toEpochMilli()
-            val endMillis = end.atZone(zone).toInstant().toEpochMilli()
-            val event = CalendarEventItem(
-                id = "ev-" + UUID.randomUUID().toString().take(6),
-                title = "Meeting: $title",
-                startIso = now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                endIso = end.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                durationMinutes = durationMinutes,
-                location = "SUPSI MeDiTech / Google Meet",
-                contact = contact,
-                isOnline = true,
-                hangoutLink = "https://meet.google.com/mdt-clin-${UUID.randomUUID().toString().take(4)}",
-                startMillis = startMillis,
-                endMillis = endMillis
+            val prompt = if (slotStr.isNotBlank()) "fissa meeting $title con $contact $slotStr" else "fissa meeting $title con $contact"
+            val parsed = aiEngine.parseAppointmentInstruction(prompt).let {
+                if (durationMinutes > 0) it.copy(durata_minuti = durationMinutes) else it
+            }
+            val buffer = if (_uiState.value.safetyBufferEnabled) 15L else 0L
+            val created = calendarRepository.createEvent(
+                proposed = parsed,
+                bufferMinutes = buffer,
+                autoCreateMeet = _uiState.value.autoCreateMeet
             )
-            calendarRepository.addEvent(event)
             refreshEvents()
             _uiState.value = _uiState.value.copy(
-                statusBanner = "Meeting con '$contact' aggiunto all'Agenda Clinica!"
+                statusBanner = if (created.hasConflict) {
+                    "Meeting con '$contact' aggiunto con avviso di conflitto!"
+                } else {
+                    "Meeting con '$contact' aggiunto all'Agenda Clinica!"
+                }
             )
         }
     }
@@ -238,7 +255,12 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isAiProcessing = true)
             val parsed = aiEngine.parseAppointmentInstruction(instruction)
-            val created = calendarRepository.createEvent(parsed)
+            val buffer = if (_uiState.value.safetyBufferEnabled) 15L else 0L
+            val created = calendarRepository.createEvent(
+                proposed = parsed,
+                bufferMinutes = buffer,
+                autoCreateMeet = _uiState.value.autoCreateMeet
+            )
             refreshEvents()
             _uiState.value = _uiState.value.copy(isAiProcessing = false)
 
@@ -260,7 +282,8 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
                 id = UUID.randomUUID().toString().take(8),
                 role = "assistant",
                 text = confirmationText,
-                appointmentProposal = parsed
+                appointmentProposal = parsed,
+                createdEvent = created
             )
             _uiState.value = _uiState.value.copy(
                 chatMessages = _uiState.value.chatMessages + assistantMsg,
@@ -446,14 +469,30 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(statusBanner = null)
     }
 
-    fun checkForAppUpdate() {
+    fun checkForAppUpdate(force: Boolean = false) {
         viewModelScope.launch {
-            val result = otaUpdateManager.checkForUpdate()
+            val result = otaUpdateManager.checkForUpdate(force = force)
             if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.UPDATE_AVAILABLE) {
+                val manifest = result.manifest
+                val cachedApk = if (manifest != null) {
+                    otaUpdateManager.getExistingDownloadedApk(
+                        targetVersionCode = manifest.latestVersionCode,
+                        expectedSha256 = manifest.sha256
+                    )
+                } else null
+
+                val isNewer = manifest != null && manifest.latestVersionCode > result.currentVersionCode
+                val bannerText = if (isNewer) {
+                    "Nuovo aggiornamento v${manifest?.latestVersionName} disponibile!"
+                } else {
+                    "Versione v${manifest?.latestVersionName ?: result.currentVersionName} pronta (Reinstallazione/Aggiornamento)"
+                }
+
                 _uiState.value = _uiState.value.copy(
                     isUpdateAvailable = true,
-                    updateManifest = result.manifest,
-                    statusBanner = "Nuovo aggiornamento v${result.manifest?.latestVersionName} disponibile!"
+                    updateManifest = manifest,
+                    readyToInstallApk = cachedApk,
+                    statusBanner = bannerText
                 )
             } else if (result.status == com.example.assistentemeditechmobile.data.ota.UpdateCheckStatus.UP_TO_DATE) {
                 _uiState.value = _uiState.value.copy(
@@ -467,22 +506,56 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun startOtaDownload(onCompleted: (java.io.File) -> Unit) {
+    fun startOtaDownload(context: Context, onReadyToInstall: (java.io.File) -> Unit = {}) {
         val manifest = _uiState.value.updateManifest ?: return
         viewModelScope.launch {
+            // Se il file APK è già scaricato e verificato nella cache, procedi subito all'installazione
+            val existingApk = otaUpdateManager.getExistingDownloadedApk(
+                targetVersionCode = manifest.latestVersionCode,
+                expectedSha256 = manifest.sha256
+            )
+            if (existingApk != null && existingApk.exists()) {
+                _uiState.value = _uiState.value.copy(
+                    readyToInstallApk = existingApk,
+                    isDownloadingUpdate = false,
+                    updateProgress = 1f,
+                    statusBanner = "Pacchetto v${manifest.latestVersionName} pronto per l'installazione!"
+                )
+                onReadyToInstall(existingApk)
+                installOrPromptPermission(context, existingApk)
+                return@launch
+            }
+
             _uiState.value = _uiState.value.copy(isDownloadingUpdate = true, updateProgress = 0f)
             val result = otaUpdateManager.downloadApk(manifest.downloadUrl, manifest.latestVersionCode, manifest.sha256) { progress, _, _ ->
                 _uiState.value = _uiState.value.copy(updateProgress = progress)
             }
             _uiState.value = _uiState.value.copy(isDownloadingUpdate = false)
             result.onSuccess { apkFile ->
-                _uiState.value = _uiState.value.copy(readyToInstallApk = apkFile)
-                onCompleted(apkFile)
+                _uiState.value = _uiState.value.copy(
+                    readyToInstallApk = apkFile,
+                    updateProgress = 1f,
+                    statusBanner = "Download completato! Avvio installazione..."
+                )
+                onReadyToInstall(apkFile)
+                installOrPromptPermission(context, apkFile)
             }.onFailure { err ->
                 _uiState.value = _uiState.value.copy(
-                    statusBanner = "Errore download aggiornamento: ${err.localizedMessage}"
+                    statusBanner = "Errore download aggiornamento: ${err.localizedMessage ?: "Errore di connessione"}"
                 )
             }
+        }
+    }
+
+    fun installOrPromptPermission(context: Context, apkFile: java.io.File) {
+        if (otaUpdateManager.canRequestPackageInstalls()) {
+            context.startActivity(otaUpdateManager.createInstallIntent(apkFile))
+            _uiState.value = _uiState.value.copy(isUpdateAvailable = false)
+        } else {
+            _uiState.value = _uiState.value.copy(
+                statusBanner = "Autorizza l'installazione di app sconosciute, poi tocca 'Installa Ora'."
+            )
+            context.startActivity(otaUpdateManager.createManageUnknownAppSourcesIntent())
         }
     }
 
