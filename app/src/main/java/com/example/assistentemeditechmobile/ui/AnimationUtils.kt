@@ -1,5 +1,6 @@
 package com.example.assistentemeditechmobile.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -11,17 +12,40 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.assistentemeditechmobile.theme.*
+import kotlinx.coroutines.delay
 
 /**
  * Emil Kowalski & Apple HIG Animation Architecture (/emilkowalski-animation).
@@ -279,5 +303,181 @@ fun Modifier.cartoonPressSquash(
     this.graphicsLayer {
         this.scaleX = scaleX
         this.scaleY = scaleY
+    }
+}
+
+/**
+ * Emil Kowalski Spring Entrance for Cards, Messages and Dialogs.
+ * Enters smoothly from 0.94f to 1.0f (NEVER from 0f!) with subtle vertical slide and alpha.
+ */
+fun Modifier.springEntrance(
+    delayMillis: Int = 0
+): Modifier = composed {
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (delayMillis > 0) delay(delayMillis.toLong())
+        isVisible = true
+    }
+    val scale by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0.94f,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+        label = "entrance_scale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 260, easing = LinearEasing),
+        label = "entrance_alpha"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (isVisible) 0f else 18f,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+        label = "entrance_ty"
+    )
+    this.graphicsLayer {
+        this.scaleX = scale
+        this.scaleY = scale
+        this.alpha = alpha
+        this.translationY = translationY
+    }
+}
+
+/**
+ * SettingsTendinaCard: Sezione espandibile a tendina in stile Apple HIG & Perito Mobile.
+ * - Chevron che ruota a 180° su GPU RenderThread con molla Emil Kowalski
+ * - animateContentSize con molla fisica naturale (dampingRatio = 0.82f)
+ * - Badge opzionale con colore MeDiTech
+ * - Bordo e contrasto dinamico all'apertura
+ */
+@Composable
+fun SettingsTendinaCard(
+    title: String,
+    subtitle: String,
+    badgeText: String? = null,
+    badgeColor: Color = MeditechCyanSoft,
+    badgeTextColor: Color = MeditechCyanDark,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.78f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "tendina_chevron"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MeditechGroupedBg,
+        border = BorderStroke(
+            if (isExpanded) 1.dp else 0.6.dp,
+            if (isExpanded) MeditechCyanPrimary.copy(alpha = 0.65f) else MeditechBorder
+        ),
+        shadowElevation = if (isExpanded) 1.5.dp else 0.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring<IntSize>(
+                    dampingRatio = 0.82f,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Intestazione a Tendina Cliccabile
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MeditechTextPrimary,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (badgeText != null) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = badgeColor
+                            ) {
+                                Text(
+                                    text = badgeText,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    ),
+                                    color = badgeTextColor,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MeditechTextTertiary,
+                        maxLines = if (isExpanded) 2 else 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Freccia Chevron animata con rotazione fluida su GPU
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .background(
+                            if (isExpanded) MeditechCyanSoft else MeditechSurface,
+                            CircleShape
+                        )
+                        .border(
+                            0.6.dp,
+                            if (isExpanded) MeditechBorderCyan else MeditechBorder,
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (isExpanded) "Comprimi sezione" else "Espandi sezione",
+                        tint = if (isExpanded) MeditechCyanDark else MeditechTextSecondary,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .graphicsLayer { rotationZ = chevronRotation }
+                    )
+                }
+            }
+
+            // Corpo Dettagliato a Tendina
+            if (isExpanded) {
+                HorizontalDivider(
+                    thickness = 0.6.dp,
+                    color = MeditechBorder,
+                    modifier = Modifier.padding(horizontal = 14.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
+                    content()
+                }
+            }
+        }
     }
 }

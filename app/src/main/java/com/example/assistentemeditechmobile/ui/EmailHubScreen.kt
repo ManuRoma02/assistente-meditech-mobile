@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -247,7 +248,7 @@ fun EmailHubScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Lista Email o Stato Vuoto
+        // Lista Email o Stato Vuoto (senza email fittizie inventate)
         if (filteredEmails.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -256,32 +257,79 @@ fun EmailHubScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(22.dp),
                     color = MeditechSurface,
-                    border = BorderStroke(0.8.dp, MeditechBorder),
-                    modifier = Modifier.padding(24.dp)
+                    border = BorderStroke(0.8.dp, MeditechBorderCyan),
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.padding(20.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(22.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MailOutline,
-                            contentDescription = null,
-                            tint = MeditechCyanPrimary,
-                            modifier = Modifier.size(36.dp)
-                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = MeditechCyanSoft,
+                            modifier = Modifier.size(54.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.MailOutline,
+                                    contentDescription = null,
+                                    tint = MeditechCyanPrimary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
                         Text(
-                            text = "Nessuna email nel filtro",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            text = "Nessuna email presente",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MeditechTextPrimary
                         )
                         Text(
-                            text = "Nessuna nuova email presente nella posta in arrivo.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MeditechTextTertiary
+                            text = "Nessuna email inventata di default. Collega la tua casella IMAP/Exchange o simula l'arrivo di una comunicazione con il pulsante in alto.",
+                            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+                            color = MeditechTextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val configInteraction = remember { MutableInteractionSource() }
+                            OutlinedButton(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.setEmailConfigSheetVisible(true)
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MeditechCyanPrimary),
+                                modifier = Modifier.emilPressScale(configInteraction, pressedScale = 0.95f)
+                            ) {
+                                Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(14.dp), tint = MeditechCyanPrimary)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Configura Casella", fontSize = 12.sp, color = MeditechCyanPrimary, fontWeight = FontWeight.SemiBold)
+                            }
+
+                            val simInteraction = remember { MutableInteractionSource() }
+                            Button(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.simulateReceiveIncomingEmail()
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MeditechCyanPrimary),
+                                modifier = Modifier.cartoonPressSquash(simInteraction, pressedScaleY = 0.92f)
+                            ) {
+                                Icon(Icons.Default.MarkEmailUnread, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Simula Ricezione", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
@@ -293,6 +341,11 @@ fun EmailHubScreen(
             ) {
                 items(filteredEmails, key = { it.id }) { email ->
                     EmailCard(
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                            placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                            fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+                        ),
                         email = email,
                         isSending = email.id in uiState.sentEmailIds,
                         onClick = { viewModel.openEmailDetail(email) },
@@ -484,7 +537,8 @@ fun EmailCard(
     onGenerateDraft: () -> Unit,
     onSendReply: () -> Unit,
     onCopyDraft: (String) -> Unit,
-    onAddToAgenda: () -> Unit
+    onAddToAgenda: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
     var isAddedToAgenda by remember { mutableStateOf(false) }
@@ -513,7 +567,7 @@ fun EmailCard(
             BorderStroke(0.8.dp, MeditechBorder)
         },
         shadowElevation = if (!email.isRead || email.isVip) 2.dp else 0.5.dp,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .cartoonPaperPlane(isSending)
             .cartoonPressSquash(cardInteraction, pressedScaleY = 0.985f)

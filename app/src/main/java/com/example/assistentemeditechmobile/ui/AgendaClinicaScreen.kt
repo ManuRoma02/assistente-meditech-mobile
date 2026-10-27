@@ -3,6 +3,9 @@ package com.example.assistentemeditechmobile.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
@@ -268,6 +271,11 @@ fun AgendaClinicaScreen(
             ) {
                 items(uiState.events, key = { it.id }) { event ->
                     ClinicalEventCard(
+                        modifier = Modifier.animateItem(
+                            fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                            placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                            fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+                        ),
                         event = event,
                         isDeleting = event.id in uiState.deletingEventIds,
                         onCancelClick = { eventToCancel = event },
@@ -448,16 +456,34 @@ private fun DateSelectorStrip(
             }
             val dayNumber = date.dayOfMonth.toString()
 
+            val pillBg by animateColorAsState(
+                targetValue = if (isSelected) MeditechCyanPrimary else MeditechSurface,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                label = "date_pill_bg"
+            )
+            val pillBorder by animateColorAsState(
+                targetValue = if (isSelected) MeditechCyanPrimary else if (isDateToday) MeditechBorderCyan else MeditechBorder,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                label = "date_pill_border"
+            )
+            val pillTextPrimary by animateColorAsState(
+                targetValue = if (isSelected) Color.White else MeditechTextPrimary,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                label = "date_pill_text_primary"
+            )
+            val pillTextSecondary by animateColorAsState(
+                targetValue = if (isSelected) Color.White.copy(alpha = 0.85f) else if (isDateToday) MeditechCyanPrimary else MeditechTextTertiary,
+                animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                label = "date_pill_text_secondary"
+            )
+
             val dateInteraction = remember { MutableInteractionSource() }
             Surface(
                 onClick = { onDateSelected(date) },
                 interactionSource = dateInteraction,
                 shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) MeditechCyanPrimary else MeditechSurface,
-                border = BorderStroke(
-                    0.8.dp,
-                    if (isSelected) MeditechCyanPrimary else if (isDateToday) MeditechBorderCyan else MeditechBorder
-                ),
+                color = pillBg,
+                border = BorderStroke(0.8.dp, pillBorder),
                 shadowElevation = if (isSelected) 2.dp else 0.5.dp,
                 modifier = Modifier
                     .width(62.dp)
@@ -474,7 +500,7 @@ private fun DateSelectorStrip(
                             fontSize = 10.sp,
                             fontWeight = if (isSelected || isDateToday) FontWeight.Bold else FontWeight.Medium
                         ),
-                        color = if (isSelected) Color.White.copy(alpha = 0.85f) else if (isDateToday) MeditechCyanPrimary else MeditechTextTertiary
+                        color = pillTextSecondary
                     )
                     Text(
                         text = dayNumber,
@@ -482,7 +508,7 @@ private fun DateSelectorStrip(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         ),
-                        color = if (isSelected) Color.White else MeditechTextPrimary
+                        color = pillTextPrimary
                     )
                     // Indicatore pallino per la giornata odierna
                     if (isDateToday) {
@@ -510,7 +536,8 @@ fun ClinicalEventCard(
     isDeleting: Boolean = false,
     onCancelClick: () -> Unit,
     onMeetClick: () -> Unit,
-    onShareClick: () -> Unit
+    onShareClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -541,7 +568,7 @@ fun ClinicalEventCard(
             if (event.hasConflict) MeditechWarningAmber.copy(alpha = 0.6f) else MeditechBorder
         ),
         shadowElevation = 1.dp,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .cartoonCardExit(isDeleting)
     ) {

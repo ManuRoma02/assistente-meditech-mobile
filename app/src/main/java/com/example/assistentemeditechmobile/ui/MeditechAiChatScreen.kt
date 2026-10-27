@@ -157,6 +157,11 @@ fun MeditechAiChatScreen(
 
             itemsIndexed(uiState.chatMessages, key = { _, message -> message.id }) { index, message ->
                 ChatBubble(
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                        placementSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
+                        fadeOutSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+                    ),
                     message = message,
                     index = index,
                     isDissolving = uiState.isClearingChat
@@ -357,7 +362,8 @@ private fun ChatEmptyWelcomeState(onSelectSuggestion: (String) -> Unit) {
 fun ChatBubble(
     message: ChatMessage,
     index: Int = 0,
-    isDissolving: Boolean = false
+    isDissolving: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     val isUser = message.role == "user"
     val context = LocalContext.current
@@ -394,7 +400,7 @@ fun ChatBubble(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .cartoonPoofDissolve(isDissolving = isDissolving, index = index)
             .graphicsLayer {

@@ -35,46 +35,7 @@ class EmailRepository(
     private val configFile: File
         get() = File(context.filesDir, "meditech_email_config.json")
 
-    private val defaultEmails = listOf(
-        EmailItem(
-            id = "em-1",
-            accountName = "SUPSI MeDiTech",
-            sender = "Prof. Stéphane Meystre <stephane.meystre@supsi.ch>",
-            recipient = "utente@supsi.ch",
-            subject = "Allineamento su Progetto Clinico AI & Cartelle Elettroniche",
-            dateStr = LocalDateTime.now().minusHours(2).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
-            bodySnippet = "Gentile collega, vorrei fare un breve allineamento di 30 minuti domani alle 14:00 riguardo l'avanzamento dei moduli NLP clinici per MeDiTech. Fammi sapere se l'orario ti va bene o proponi un'alternativa.",
-            summary = "Il Prof. Stéphane Meystre propone un incontro di 30 minuti domani alle 14:00 per discutere l'avanzamento dei moduli NLP clinici per MeDiTech.",
-            language = "it",
-            isImportant = true,
-            isVip = true,
-            hasAppointmentProposal = true,
-            suggestedSlot = "Domani alle 14:00",
-            suggestedDurationMinutes = 30,
-            draftReply = "Gentile Prof. Meystre,\n\nti confermo la piena disponibilità per il meeting di domani alle ore 14:00. Ho già provveduto a registrare l'appuntamento in agenda con promemoria attivo.\n\nA domani e cordiali saluti,\nAssistente MeDiTech",
-            attachments = listOf("Avanzamento_MeDiTech_NLP.pdf"),
-            isRead = false
-        ),
-        EmailItem(
-            id = "em-2",
-            accountName = "SUPSI MeDiTech",
-            sender = "Dr. Elena Fontana <elena.fontana@eoc.ch>",
-            recipient = "utente@supsi.ch",
-            subject = "Feedback preliminare su validazione dataset clinico",
-            dateStr = LocalDateTime.now().minusHours(5).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
-            bodySnippet = "Gentile collega, abbiamo revisionato il primo set di dati anonimizzati dell'ospedale. I parametri di accuratezza sono in linea con il protocollo etico approvato.",
-            summary = "Feedback positivo da EOC Ticino sulla conformità del dataset clinico anonimizzato al protocollo etico approvato.",
-            language = "it",
-            isImportant = true,
-            isVip = true,
-            hasAppointmentProposal = false,
-            suggestedSlot = "",
-            suggestedDurationMinutes = 0,
-            draftReply = "Gentile Dr.ssa Fontana,\n\nti ringrazio per l'aggiornamento e per l'attenta revisione. Procediamo come concordato con la seconda fase di validazione.\n\nCordiali saluti,\nAssistente MeDiTech",
-            attachments = listOf("Report_Etico_EOC_V1.pdf"),
-            isRead = true
-        )
-    )
+    private val defaultEmails: List<EmailItem> = emptyList()
 
     suspend fun getEmails(): List<EmailItem> = withContext(Dispatchers.IO) {
         mutex.withLock {
@@ -227,14 +188,22 @@ class EmailRepository(
     private fun getEmailsInternal(): List<EmailItem> {
         cachedEmails?.let { return it }
         if (!emailsFile.exists()) {
-            cachedEmails = defaultEmails
-            return defaultEmails
+            cachedEmails = emptyList()
+            return emptyList()
         }
         val loaded = runCatching {
             json.decodeFromString<List<EmailItem>>(emailsFile.readText())
-        }.getOrDefault(defaultEmails)
-        val cleaned = loaded.filterNot { it.accountName.equals("Lavoro", ignoreCase = true) }
-        if (cleaned.size != loaded.size) {
+        }.getOrDefault(emptyList())
+        // Rimuove completamente tutte le email mock/inventate di seed precedenti
+        val cleaned = loaded.filterNot { email ->
+            email.id in listOf("em-1", "em-2", "em-3") ||
+            email.id.startsWith("em-seed") ||
+            email.accountName.equals("Lavoro", ignoreCase = true) ||
+            (email.sender.contains("stephane.meystre@supsi.ch") && email.subject.contains("Allineamento su Progetto")) ||
+            (email.sender.contains("elena.fontana@eoc.ch") && email.subject.contains("Feedback preliminare")) ||
+            email.sender.contains("updates@ieee-org.org")
+        }
+        if (cleaned.size != loaded.size || !emailsFile.exists()) {
             runCatching { emailsFile.writeText(json.encodeToString(cleaned)) }
         }
         cachedEmails = cleaned

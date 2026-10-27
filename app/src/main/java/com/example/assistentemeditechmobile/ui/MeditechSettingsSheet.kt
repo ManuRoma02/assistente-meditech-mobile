@@ -32,6 +32,11 @@ fun MeditechSettingsSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var localOnDevicePath by remember { mutableStateOf(uiState.onDeviceModelPath) }
+    var expandedSections by remember { mutableStateOf(setOf<String>("ai_model")) }
+    val toggleSection: (String) -> Unit = { key ->
+        expandedSections = if (expandedSections.contains(key)) expandedSections - key else expandedSections + key
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -51,11 +56,11 @@ fun MeditechSettingsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
+                .padding(horizontal = 18.dp)
+                .padding(bottom = 36.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header
+            // Header FISSO in stile Apple HIG & Perito Mobile
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -90,9 +95,9 @@ fun MeditechSettingsSheet(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Configurazione motore clinico & preferenze",
+                            text = "Sezioni a tendina stile Perito Mobile • 100% On-Device",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MeditechTextTertiary,
+                            color = MeditechCyanDark,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -107,75 +112,31 @@ fun MeditechSettingsSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Chiudi",
+                        contentDescription = "Chiudi impostazioni",
                         tint = MeditechTextSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Privacy Clinica & Architettura 100% On-Device
-            Text(
-                text = "PROTEZIONE PRIVACY & DATI CLINICI",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechTealActive,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MeditechTealSoft),
-                border = BorderStroke(1.dp, MeditechTealActive.copy(alpha = 0.3f)),
-                modifier = Modifier.fillMaxWidth()
+            // =========================================================================
+            // TENDINA 1: MODELLO AI ATTIVO LOCALE (Qwen 3.5 2B 4-bit)
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "🧠 Modello AI Locale Attivo",
+                subtitle = "Qwen 3.5 2B (4-bit Q4_K_M) • Zero Cloud",
+                badgeText = "Attivo",
+                badgeColor = MeditechTealSoft,
+                badgeTextColor = MeditechTealActive,
+                isExpanded = expandedSections.contains("ai_model"),
+                onToggle = { toggleSection("ai_model") }
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            tint = MeditechTealActive,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "100% On-Device Locale (Zero Cloud)",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MeditechTealActive
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "I dati sanitari, le note dei pazienti, l'agenda con il Prof. Stéphane Meystre e la corrispondenza sono protetti e rimangono rigorosamente all'interno di questo smartphone. Nessuna API cloud esterna riceve informazioni cliniche, in conformità con la LPD Svizzera e il GDPR art. 9.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.5.sp),
-                        color = MeditechTextPrimary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 2. Modello AI Locale: Unica Opzione Attiva (Qwen 3.5 2B 4-bit)
-            Text(
-                text = "MODELLO AI ATTIVO (UNICA OPZIONE CONSENTITA)",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechCyanDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
-                border = BorderStroke(1.5.dp, MeditechCyanPrimary),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -183,9 +144,9 @@ fun MeditechSettingsSheet(
                         Surface(
                             shape = CircleShape,
                             color = MeditechCyanPrimary,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(12.dp)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = uiState.selectedAiModel,
                             style = MaterialTheme.typography.titleSmall,
@@ -197,20 +158,17 @@ fun MeditechSettingsSheet(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Attivo",
                             tint = MeditechCyanPrimary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Modello locale compatto quantizzato a 4-bit per architetture ARM64. Elaborazione neurale interamente sul processore dello smartphone (NPU/CPU) con zero emissione di token all'esterno.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.5.sp),
                         color = MeditechTextSecondary
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Specifiche tecniche
+                    // Specifiche tecniche a capsule
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -252,38 +210,76 @@ fun MeditechSettingsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 3. Storage Pesi Modello Locale su Telefono
-            Text(
-                text = "STORAGE FILE PESI MODELLO (.GGUF / .BIN)",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechCyanDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
-                border = BorderStroke(1.dp, MeditechBorder),
-                modifier = Modifier.fillMaxWidth()
+            // =========================================================================
+            // TENDINA 2: PROTEZIONE PRIVACY & DATI SANITARI
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "🔒 Protezione Privacy & Dati Sanitari",
+                subtitle = "Architettura 100% Locale conforme LPD e GDPR",
+                badgeText = "100% Locale",
+                badgeColor = MeditechTealSoft,
+                badgeTextColor = MeditechTealActive,
+                isExpanded = expandedSections.contains("privacy"),
+                onToggle = { toggleSection("privacy") }
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MeditechTealActive,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "100% On-Device Locale (Zero Cloud)",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MeditechTealActive
+                        )
+                    }
+                    Text(
+                        text = "I dati sanitari, le note dei pazienti, l'agenda con il Prof. Stéphane Meystre e la corrispondenza sono protetti e rimangono rigorosamente all'interno di questo smartphone. Nessuna API cloud esterna riceve informazioni cliniche, in conformità con la LPD Svizzera e il GDPR art. 9.",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.5.sp),
+                        color = MeditechTextPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // =========================================================================
+            // TENDINA 3: STORAGE PESI MODELLO (.GGUF / .BIN)
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "💾 File Pesi Modello Locale",
+                subtitle = "Percorso file quantizzato su memoria smartphone",
+                badgeText = if (uiState.onDeviceModelStatus?.contains("verificato", ignoreCase = true) == true) "Pronto" else "Storage",
+                badgeColor = if (uiState.onDeviceModelStatus?.contains("verificato", ignoreCase = true) == true) MeditechTealSoft else MeditechCyanSoft,
+                badgeTextColor = if (uiState.onDeviceModelStatus?.contains("verificato", ignoreCase = true) == true) MeditechTealActive else MeditechCyanDark,
+                isExpanded = expandedSections.contains("storage"),
+                onToggle = { toggleSection("storage") }
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(
                         text = "Percorso File su Memoria Smartphone:",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MeditechTextPrimary
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Posiziona il file pesi quantizzato 'qwen3.5-2b-q4_k_m.gguf' nella memoria interna.",
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
                         color = MeditechTextTertiary
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
                     OutlinedTextField(
                         value = localOnDevicePath,
                         onValueChange = {
@@ -296,8 +292,6 @@ fun MeditechSettingsSheet(
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                         placeholder = { Text("es: /sdcard/Download/qwen3.5-2b-q4_k_m.gguf", fontSize = 12.sp) }
                     )
-
-                    Spacer(modifier = Modifier.height(10.dp))
 
                     val testPathInteraction = remember { MutableInteractionSource() }
                     OutlinedButton(
@@ -327,7 +321,6 @@ fun MeditechSettingsSheet(
                     }
 
                     if (uiState.onDeviceModelStatus != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
                         val isFound = uiState.onDeviceModelStatus.contains("verificato", ignoreCase = true) ||
                                 uiState.onDeviceModelStatus.contains("pronto", ignoreCase = true)
                         Surface(
@@ -346,70 +339,83 @@ fun MeditechSettingsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 2. Stile di Risposta
-            Text(
-                text = "STILE RISPOSTA & RAGIONAMENTO",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechCyanDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // =========================================================================
+            // TENDINA 4: STILE DI RISPOSTA & RAGIONAMENTO
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "🎭 Stile Risposta & Ragionamento",
+                subtitle = "Calibra la profondità di analisi clinica",
+                badgeText = uiState.responseStyle,
+                badgeColor = MeditechCyanSoft,
+                badgeTextColor = MeditechCyanDark,
+                isExpanded = expandedSections.contains("style"),
+                onToggle = { toggleSection("style") }
             ) {
-                listOf("Veloce & Diretto", "Clinico Bilanciato", "Approfondito").forEach { style ->
-                    val isSelected = uiState.responseStyle == style
-                    val interaction = remember { MutableInteractionSource() }
-
-                    Surface(
-                        onClick = { viewModel.setResponseStyle(style) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) MeditechCyanSoft else MeditechGroupedBg,
-                        border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else Color.Transparent),
-                        modifier = Modifier
-                            .weight(1f)
-                            .emilPressScale(interaction)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Seleziona la modalità di elaborazione on-device:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MeditechTextSecondary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = style,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MeditechCyanDark else MeditechTextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                        listOf("Veloce & Diretto", "Clinico Bilanciato", "Approfondito").forEach { style ->
+                            val isSelected = uiState.responseStyle == style
+                            val interaction = remember { MutableInteractionSource() }
+
+                            Surface(
+                                onClick = { viewModel.setResponseStyle(style) },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) MeditechCyanSoft else MeditechSurface,
+                                border = BorderStroke(1.dp, if (isSelected) MeditechCyanPrimary else MeditechBorder),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .emilPressScale(interaction)
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = style,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) MeditechCyanDark else MeditechTextSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 3. Automazione Clinica & Agenda
-            Text(
-                text = "AUTOMAZIONE CLINICA & AGENDA",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechCyanDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
-                modifier = Modifier.fillMaxWidth()
+            // =========================================================================
+            // TENDINA 5: AUTOMAZIONE CLINICA & AGENDA
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "📅 Automazione Clinica & Agenda",
+                subtitle = "Google Meet istantaneo e buffer sicurezza 15 min",
+                badgeText = if (uiState.autoCreateMeet) "Meet Attivo" else "Manuale",
+                badgeColor = MeditechCyanSoft,
+                badgeTextColor = MeditechCyanDark,
+                isExpanded = expandedSections.contains("agenda"),
+                onToggle = { toggleSection("agenda") }
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -438,7 +444,7 @@ fun MeditechSettingsSheet(
                         )
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = MeditechBorder)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MeditechBorder)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -470,24 +476,24 @@ fun MeditechSettingsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 4. Configurazione Account Email (Apple Style)
-            Text(
-                text = "ACCOUNT EMAIL & SINCRONIZZAZIONE",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechCyanDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Card(
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MeditechGroupedBg),
-                modifier = Modifier.fillMaxWidth()
+            // =========================================================================
+            // TENDINA 6: ACCOUNT EMAIL & SINCRONIZZAZIONE
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "📬 Parametri Posta & Sincronizzazione",
+                subtitle = "Account istituzionale SUPSI / EOC Webmail",
+                badgeText = uiState.emailAccountConfig.provider.take(12),
+                badgeColor = MeditechCyanSoft,
+                badgeTextColor = MeditechCyanDark,
+                isExpanded = expandedSections.contains("email"),
+                onToggle = { toggleSection("email") }
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -509,14 +515,14 @@ fun MeditechSettingsSheet(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = uiState.emailAccountConfig.emailAddress,
+                                text = uiState.emailAccountConfig.emailAddress.ifBlank { "Nessuna casella collegata" },
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MeditechTextPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "${uiState.emailAccountConfig.provider} • Sincronizzazione IMAP SSL attiva",
+                                text = "${uiState.emailAccountConfig.provider} • Parametri IMAP SSL",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MeditechTextTertiary,
                                 maxLines = 1,
@@ -524,8 +530,6 @@ fun MeditechSettingsSheet(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
 
                     val configBtnInteraction = remember { MutableInteractionSource() }
                     OutlinedButton(
@@ -547,126 +551,131 @@ fun MeditechSettingsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 5. Aggiornamenti OTA Git
-            Text(
-                text = "STATO DEL SISTEMA & AGGIORNAMENTI",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MeditechCyanDark,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val updateInteraction = remember { MutableInteractionSource() }
-            OutlinedButton(
-                onClick = {
-                    viewModel.checkForAppUpdate(force = true)
-                },
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, MeditechCyanPrimary),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .emilPressScale(updateInteraction)
+            // =========================================================================
+            // TENDINA 7: STATO DEL SISTEMA & AGGIORNAMENTI OTA GIT
+            // =========================================================================
+            SettingsTendinaCard(
+                title = "🚀 Stato Sistema & Aggiornamenti OTA",
+                subtitle = "Verifica da GitHub e novità release installata",
+                badgeText = "v${viewModel.otaUpdateManager.getCurrentVersionName()}",
+                badgeColor = if (uiState.isUpdateAvailable) MeditechTealSoft else MeditechCyanSoft,
+                badgeTextColor = if (uiState.isUpdateAvailable) MeditechTealActive else MeditechCyanDark,
+                isExpanded = expandedSections.contains("updates"),
+                onToggle = { toggleSection("updates") }
             ) {
-                Icon(
-                    imageVector = Icons.Default.CloudSync,
-                    contentDescription = null,
-                    tint = MeditechCyanPrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Verifica Aggiornamenti (v${viewModel.otaUpdateManager.getCurrentVersionName()} • Build #${viewModel.otaUpdateManager.getCurrentVersionCode()})",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MeditechCyanPrimary,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (uiState.isUpdateAvailable) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Card(
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MeditechTealSoft),
-                    border = BorderStroke(1.2.dp, MeditechTealActive),
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CloudDownload,
-                                contentDescription = null,
-                                tint = MeditechTealActive,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Aggiornamento v${uiState.updateManifest?.latestVersionName ?: "Disponibile"} Rilevato!",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MeditechTealActive
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "È disponibile una nuova versione Git (Build #${uiState.updateManifest?.latestVersionCode ?: 4}). Puoi scaricarla e installarla con 1-Tap.",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
-                            color = MeditechTextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Button(
-                            onClick = {
-                                onDismiss() // Chiude il foglio impostazioni e apre il dialog di aggiornamento 1-Tap
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MeditechTealActive),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Apri Installazione 1-Tap", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            // Box Sintetico Novità Aggiornamenti con Parole Chiave in Grassetto
-            val latestNotes = uiState.updateManifest?.releaseNotes?.ifBlank { null }
-                ?: "• **Docking Unificato**: navigazione fluida a 3 sezioni integrata in basso\n• **Modelli On-Device**: supporto esclusivo **Qwen 3.5** (rimosso **Qwen 2.5**)\n• **Markdown Nativo**: eliminati asterischi grezzi con resa tipografica reale\n• **Briefing Email**: sintesi automatica locale delle comunicazioni cliniche\n• **Aggiornamenti OTA**: verifica e installazione rapida **1-Tap** da Git"
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MeditechSurface,
-                border = BorderStroke(1.dp, MeditechBorder),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    val updateInteraction = remember { MutableInteractionSource() }
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.checkForAppUpdate(force = true)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MeditechCyanPrimary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .emilPressScale(updateInteraction)
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Icons.Default.CloudSync,
                             contentDescription = null,
                             tint = MeditechCyanPrimary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Novità Versione v${viewModel.otaUpdateManager.getCurrentVersionName()}",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MeditechCyanDark
+                            text = "Verifica Aggiornamenti (Build #${viewModel.otaUpdateManager.getCurrentVersionCode()})",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MeditechCyanPrimary,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = formatMeditechMessageText(raw = latestNotes, isUser = false),
-                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
-                        color = MeditechTextSecondary
-                    )
+
+                    if (uiState.isUpdateAvailable) {
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = MeditechTealSoft),
+                            border = BorderStroke(1.2.dp, MeditechTealActive),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        tint = MeditechTealActive,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Aggiornamento v${uiState.updateManifest?.latestVersionName ?: "Disponibile"} Rilevato!",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MeditechTealActive
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "È disponibile una nuova versione Git (Build #${uiState.updateManifest?.latestVersionCode ?: 4}). Puoi scaricarla e installarla con 1-Tap.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                                    color = MeditechTextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = {
+                                        onDismiss()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MeditechTealActive),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Apri Installazione 1-Tap", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    // Box Sintetico Novità Aggiornamenti
+                    val latestNotes = uiState.updateManifest?.releaseNotes?.ifBlank { null }
+                        ?: "• **Impostazioni a Tendina**: tutte le sezioni pieghevoli in stile Perito Mobile con fisica a molla\n• **Animazioni Ovunque**: transizioni fluide GPU su chat, agenda e tabs\n• **Rimozione Mock Email**: eliminata ogni email fittizia predefinita"
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MeditechSurface,
+                        border = BorderStroke(0.8.dp, MeditechBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MeditechCyanPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Novità Versione v${viewModel.otaUpdateManager.getCurrentVersionName()}",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MeditechCyanDark
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = formatMeditechMessageText(raw = latestNotes, isUser = false),
+                                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 19.sp),
+                                color = MeditechTextSecondary
+                            )
+                        }
+                    }
                 }
             }
         }
