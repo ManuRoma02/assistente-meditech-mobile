@@ -73,25 +73,6 @@ class EmailRepository(
             draftReply = "Gentile Dr.ssa Fontana,\n\nti ringrazio per l'aggiornamento e per l'attenta revisione. Procediamo come concordato con la seconda fase di validazione.\n\nCordiali saluti,\nAssistente MeDiTech",
             attachments = listOf("Report_Etico_EOC_V1.pdf"),
             isRead = true
-        ),
-        EmailItem(
-            id = "em-3",
-            accountName = "Lavoro",
-            sender = "IEEE Healthcare Tech <updates@ieee-org.org>",
-            recipient = "utente@supsi.ch",
-            subject = "Monthly Newsletter: Digital Health and Medical AI Innovations",
-            dateStr = LocalDateTime.now().minusDays(1).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
-            bodySnippet = "Explore the latest breakthroughs in clinical decision support systems, wearable biosensors, and regulatory compliance for medical device software.",
-            summary = "Newsletter mensile IEEE su innovazioni nell'AI medica e biosensori (archiviata automaticamente).",
-            language = "en",
-            isImportant = false,
-            isVip = false,
-            hasAppointmentProposal = false,
-            suggestedSlot = "",
-            suggestedDurationMinutes = 0,
-            draftReply = "",
-            attachments = emptyList(),
-            isRead = true
         )
     )
 
@@ -224,6 +205,25 @@ class EmailRepository(
         true
     }
 
+    suspend fun deleteEmail(emailId: String): Boolean = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val current = getEmailsInternal().toMutableList()
+            val removed = current.removeAll { it.id == emailId }
+            if (removed) {
+                cachedEmails = current
+                emailsFile.writeText(json.encodeToString(current))
+            }
+            removed
+        }
+    }
+
+    suspend fun clearAllEmails() = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            cachedEmails = emptyList()
+            emailsFile.writeText(json.encodeToString(emptyList<EmailItem>()))
+        }
+    }
+
     private fun getEmailsInternal(): List<EmailItem> {
         cachedEmails?.let { return it }
         if (!emailsFile.exists()) {
@@ -233,7 +233,11 @@ class EmailRepository(
         val loaded = runCatching {
             json.decodeFromString<List<EmailItem>>(emailsFile.readText())
         }.getOrDefault(defaultEmails)
-        cachedEmails = loaded
-        return loaded
+        val cleaned = loaded.filterNot { it.accountName.equals("Lavoro", ignoreCase = true) }
+        if (cleaned.size != loaded.size) {
+            runCatching { emailsFile.writeText(json.encodeToString(cleaned)) }
+        }
+        cachedEmails = cleaned
+        return cleaned
     }
 }

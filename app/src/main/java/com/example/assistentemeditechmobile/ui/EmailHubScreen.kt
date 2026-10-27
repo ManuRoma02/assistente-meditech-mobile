@@ -102,7 +102,7 @@ fun EmailHubScreen(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Caselle di Lavoro",
+                    text = "Posta in Arrivo",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 21.sp
@@ -278,7 +278,7 @@ fun EmailHubScreen(
                             color = MeditechTextPrimary
                         )
                         Text(
-                            text = "Tutte le caselle di ricerca SUPSI MeDiTech sono aggiornate.",
+                            text = "Nessuna nuova email presente nella posta in arrivo.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MeditechTextTertiary
                         )
@@ -340,6 +340,7 @@ fun EmailHubScreen(
                 clipboardManager.setText(AnnotatedString(draft))
                 Toast.makeText(context, "Bozza copiata negli appunti", Toast.LENGTH_SHORT).show()
             },
+            onDeleteEmail = { viewModel.deleteEmail(it) },
             onDismiss = { viewModel.dismissEmailDetail() }
         )
     }

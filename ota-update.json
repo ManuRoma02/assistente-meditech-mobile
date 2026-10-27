@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 8,
-  "latestVersionName": "1.4.1",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.1/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Messaggi di Sistema Concisi & Puliti**: eliminati i muri di testo confusi, introduzioni prolisse e boilerplate; ora le risposte dell'assistente sono asciutte, immediate e leggibili (stile Perito Mobile)\n• **Slash Commands Rapidi**: supporto per comandi immediati `/agenda`, `/fissa`, `/email`, `/progetti`, `/aggiorna` e `/aiuto`\n• **Briefing Email Sintetico**: resoconto compatto delle comunicazioni VIP senza sovraccaricare la schermata chat\n• **Generative UI & Card Interattive**: card sotto le bolle per verifica appuntamenti e 1-tap Google Meet / Maps\n• **Aggiornamenti OTA 1-Tap Resilienti**: download con gestione permessi sconosciuti, verifica crittografica SHA-256 e installazione fluida",
+  "latestVersionCode": 9,
+  "latestVersionName": "1.4.2",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.2/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Rimozione Caselle di Lavoro di Default**: eliminata la dicitura 'Caselle di Lavoro' dall'header della schermata email, sostituita con 'Posta in Arrivo'\n• **Pulizia Account di Default**: rimossa la casella e newsletter mock 'Lavoro', preservando solo i canali clinici istituzionali SUPSI MeDiTech ed EOC Ticino\n• **Eliminazione 1-Tap**: aggiunta l'azione per cancellare singole email direttamente dal foglio di dettaglio\n• **Bonifica Automatica Cache**: rimozione automatica al primo avvio di eventuali residui della casella 'Lavoro' memorizzati in locale",
   "mandatory": false,
-  "publishedAt": "2026-10-27T11:55:00Z",
-  "sha256": "160f1268fa8bee916c4ff7d3209f30b116542314cdfa2fd6506925a73656d5d2"
+  "publishedAt": "2026-10-27T12:25:00Z",
+  "sha256": "f3c93f277c8a674347453856bc99157c208c83d976c3cfe2a0f6e956287b4a1e"
 }

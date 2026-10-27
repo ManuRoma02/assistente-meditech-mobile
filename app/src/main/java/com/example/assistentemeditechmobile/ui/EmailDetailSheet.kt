@@ -38,6 +38,7 @@ fun EmailDetailSheet(
     onAddToAgenda: (title: String, slotStr: String, durationMinutes: Int, contact: String) -> Unit,
     onSendDraft: (String) -> Unit,
     onCopyDraft: (String) -> Unit,
+    onDeleteEmail: (String) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -88,16 +89,36 @@ fun EmailDetailSheet(
                     )
                 }
 
-                val closeInteraction = remember { MutableInteractionSource() }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.emilPressScale(closeInteraction)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Chiudi",
-                        tint = MeditechTextTertiary
-                    )
+                    val deleteInteraction = remember { MutableInteractionSource() }
+                    IconButton(
+                        onClick = {
+                            onDeleteEmail(email.id)
+                            onDismiss()
+                        },
+                        modifier = Modifier.emilPressScale(deleteInteraction)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Elimina Email",
+                            tint = MeditechUrgentRed
+                        )
+                    }
+
+                    val closeInteraction = remember { MutableInteractionSource() }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.emilPressScale(closeInteraction)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Chiudi",
+                            tint = MeditechTextTertiary
+                        )
+                    }
                 }
             }
 

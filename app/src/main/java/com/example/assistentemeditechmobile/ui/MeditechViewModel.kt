@@ -131,6 +131,29 @@ class MeditechViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(selectedEmailDetail = null)
     }
 
+    fun deleteEmail(emailId: String) {
+        viewModelScope.launch {
+            emailRepository.deleteEmail(emailId)
+            val updated = emailRepository.getEmails()
+            _uiState.value = _uiState.value.copy(
+                emails = updated,
+                statusBanner = "Email rimossa dalla casella",
+                selectedEmailDetail = if (_uiState.value.selectedEmailDetail?.id == emailId) null else _uiState.value.selectedEmailDetail
+            )
+        }
+    }
+
+    fun clearAllEmails() {
+        viewModelScope.launch {
+            emailRepository.clearAllEmails()
+            _uiState.value = _uiState.value.copy(
+                emails = emptyList(),
+                statusBanner = "Tutte le email sono state rimosse",
+                selectedEmailDetail = null
+            )
+        }
+    }
+
     fun saveEmailAccountConfig(config: EmailAccountConfig) {
         viewModelScope.launch {
             emailRepository.saveEmailAccountConfig(config)
