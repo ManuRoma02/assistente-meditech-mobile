@@ -1,9 +1,9 @@
 {
-  "latestVersionCode": 16,
-  "latestVersionName": "1.4.9",
-  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.4.9/Assistente_Meditech_Mobile.apk",
-  "releaseNotes": "• **Modern Android Lifecycle**: adozione di `collectAsStateWithLifecycle()` su tutte le schermate per cancellare sottoscrizioni quando l'app è in background e risparmiare batteria\n• **Dettatura Vocale Reale On-Device**: integrazione di `SpeechRecognizer` nativo italiano offline per parlare direttamente al microfono e trascrivere istantaneamente impegni e messaggi\n• **Material 3 Pull-To-Refresh**: swipe verso il basso per sincronizzare in tempo reale sia l'agenda clinica che la casella email\n• **Swipe-To-Dismiss sulle Email**: swipe a destra per segnare come letta e swipe a sinistra per eliminare con tick aptico\n• **Dark Mode Completa & Display**: palette scura OLED per turni clinici notturni selezionabile nelle impostazioni (Sistema, Chiaro, Scuro)\n• **Protezione Biometrica**: blocco opzionale con impronta digitale/viso per tutelare i dati sanitari confidenziali SUPSI ed EOC\n• **Predictive Back Navigation**: abilitate le gesture di ritorno predittivo Android 14/15+",
+  "latestVersionCode": 17,
+  "latestVersionName": "1.5.0",
+  "downloadUrl": "https://github.com/ManuRoma02/assistente-meditech-mobile/releases/download/v1.5.0/Assistente_Meditech_Mobile.apk",
+  "releaseNotes": "• **Security Hardening (CWE-295)**: rimossi i certificati utente da base-config in network_security_config.xml; ora le CA utente sono confinate esclusivamente in debug-overrides\n• **Re-Lock Biometrico Immediato (CWE-306/613)**: implementato l'aggancio in `onStop()` di `MainActivity` che forza il riblocco dell'app appena passa in background o a schermo spento\n• **Allineamento Regole di Esclusione Backup (CWE-312)**: esclusi specificamente dai backup cloud e transfer D2D i file `meditech_email_config.json`, `vip_contacts.json` e `meditech_projects.json`\n• **Offuscamento Codice R8 Migliorato**: eliminata la regola wildcard permissiva in proguard-rules.pro per consentire l'offuscamento dell'architettura interna dell'app",
   "mandatory": false,
-  "publishedAt": "2026-10-28T00:25:00Z",
-  "sha256": "3f637017ee19e66a87d07b7e83f602445954871abf1ebe07a45df52353217d04"
+  "publishedAt": "2026-10-30T10:48:00Z",
+  "sha256": "8cecf8f38d0ae06d1287dd62e88970103f55e10867eb14d9966bb1432c18e1af"
 }

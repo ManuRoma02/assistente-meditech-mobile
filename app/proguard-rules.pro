@@ -36,9 +36,7 @@
 }
 -dontwarn androidx.work.impl.**
 
-# App Package & ViewModels
--keep class com.example.assistentemeditechmobile.** { *; }
--keepclassmembers class com.example.assistentemeditechmobile.** { *; }
+# App Package ViewModels & Navigation
 -keep class * extends androidx.lifecycle.ViewModel {
     <init>(...);
 }

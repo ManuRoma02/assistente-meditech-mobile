@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Esclude dal backup locale e cloud i file riservati clinici, email e conversazioni dei pazienti -->
+    <!-- Esclude dal backup locale e cloud i file riservati clinici, email, contatti e progetti sanitari -->
     <exclude domain="file" path="meditech_calendar_events.json" />
     <exclude domain="file" path="meditech_emails.json" />
     <exclude domain="file" path="meditech_chat_history.json" />
     <exclude domain="file" path="email_accounts.json" />
+    <exclude domain="file" path="meditech_email_config.json" />
+    <exclude domain="file" path="meditech_projects.json" />
+    <exclude domain="file" path="vip_contacts.json" />
     <exclude domain="file" path="ai_config.json" />
     <exclude domain="file" path="meditech_archive" />
 </full-backup-content>

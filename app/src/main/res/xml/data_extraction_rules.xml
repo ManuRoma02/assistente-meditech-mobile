@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- Esclude i dati clinici e credenziali riservate dal backup automatico su Google Cloud -->
+        <!-- Esclude i dati clinici, progetti, email e contatti riservati dal backup cloud (CWE-312 / GDPR art. 9) -->
         <exclude domain="file" path="meditech_calendar_events.json" />
         <exclude domain="file" path="meditech_emails.json" />
         <exclude domain="file" path="meditech_chat_history.json" />
         <exclude domain="file" path="email_accounts.json" />
+        <exclude domain="file" path="meditech_email_config.json" />
+        <exclude domain="file" path="meditech_projects.json" />
+        <exclude domain="file" path="vip_contacts.json" />
         <exclude domain="file" path="ai_config.json" />
         <exclude domain="file" path="meditech_archive" />
     </cloud-backup>
     <device-transfer>
-        <!-- Esclude i dati riservati dal trasferimento non cifrato dispositivo-dispositivo -->
+        <!-- Esclude i dati clinici e credenziali dal trasferimento non cifrato dispositivo-dispositivo -->
+        <exclude domain="file" path="meditech_calendar_events.json" />
+        <exclude domain="file" path="meditech_emails.json" />
+        <exclude domain="file" path="meditech_chat_history.json" />
         <exclude domain="file" path="email_accounts.json" />
+        <exclude domain="file" path="meditech_email_config.json" />
+        <exclude domain="file" path="meditech_projects.json" />
+        <exclude domain="file" path="vip_contacts.json" />
         <exclude domain="file" path="ai_config.json" />
+        <exclude domain="file" path="meditech_archive" />
     </device-transfer>
 </data-extraction-rules>

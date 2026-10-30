@@ -20,7 +20,7 @@ class SecurityHardeningTest {
     }
 
     @Test
-    fun testNetworkSecurityConfigRestrictsCleartext() {
+    fun testNetworkSecurityConfigRestrictsCleartextAndProtectsBaseConfig() {
         val file = File("src/main/res/xml/network_security_config.xml")
         assertTrue("network_security_config.xml must exist", file.exists())
         val content = file.readText()
@@ -29,6 +29,11 @@ class SecurityHardeningTest {
         assertTrue("domain localhost permitted for local LLM", content.contains("<domain includeSubdomains=\"true\">localhost</domain>"))
         assertTrue("domain 127.0.0.1 permitted for local Ollama", content.contains("<domain includeSubdomains=\"true\">127.0.0.1</domain>"))
         assertTrue("domain local permitted for LAN mDNS", content.contains("<domain includeSubdomains=\"true\">local</domain>"))
+
+        // CWE-295: User certs must be in debug-overrides, NOT in base-config
+        val baseConfig = content.substringAfter("<base-config").substringBefore("</base-config>")
+        assertFalse("base-config must not trust user-installed certificates", baseConfig.contains("src=\"user\""))
+        assertTrue("base-config must trust system certificates", baseConfig.contains("src=\"system\""))
     }
 
     @Test
@@ -39,6 +44,9 @@ class SecurityHardeningTest {
 
         assertTrue(content.contains("meditech_calendar_events.json"))
         assertTrue(content.contains("meditech_emails.json"))
+        assertTrue(content.contains("meditech_email_config.json"))
+        assertTrue(content.contains("meditech_projects.json"))
+        assertTrue(content.contains("vip_contacts.json"))
         assertTrue(content.contains("meditech_chat_history.json"))
         assertTrue(content.contains("email_accounts.json"))
     }
@@ -51,6 +59,9 @@ class SecurityHardeningTest {
 
         assertTrue(content.contains("meditech_calendar_events.json"))
         assertTrue(content.contains("meditech_emails.json"))
+        assertTrue(content.contains("meditech_email_config.json"))
+        assertTrue(content.contains("meditech_projects.json"))
+        assertTrue(content.contains("vip_contacts.json"))
         assertTrue(content.contains("meditech_chat_history.json"))
         assertTrue(content.contains("email_accounts.json"))
     }

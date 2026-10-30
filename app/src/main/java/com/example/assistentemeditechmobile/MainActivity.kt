@@ -47,6 +47,11 @@ class MainActivity : FragmentActivity() {
         viewModel.refreshEasterEggForAppOpen()
     }
 
+    override fun onStop() {
+        super.onStop()
+        viewModel.lockApp()
+    }
+
     override fun onResume() {
         super.onResume()
         checkBiometricOnResume()
